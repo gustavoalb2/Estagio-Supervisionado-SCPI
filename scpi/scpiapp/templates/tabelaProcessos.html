@@ -25,7 +25,7 @@
                 <i class="bi bi-download"></i> Importar
             </button>
             <a href="{% url 'processo' %}" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus"></i> Nova linha
+                <i class="bi bi-plus"></i> Novo Processo
             </a>
         </div>
     </div>
@@ -38,40 +38,21 @@
                     <th>
                         <input type="checkbox" class="form-check-input" id="selectAll">
                     </th>
-                    <th>Nome <i class="bi bi-arrow-down"></i></th>
-                    <th>Matrícula <i class="bi bi-arrow-down"></i></th>
                     <th>Nº processo <i class="bi bi-arrow-down"></i></th>
+                    <th>Setor de Origem <i class="bi bi-arrow-down"></i></th>
                     <th>Data de abertura <i class="bi bi-arrow-down"></i></th>
-                    <th>Data de retorno <i class="bi bi-arrow-down"></i></th>
-                    <th>Setor <i class="bi bi-arrow-down"></i></th>
-                    <th>Bolsa <i class="bi bi-arrow-down"></i></th>
                     <th>Status <i class="bi bi-arrow-down"></i></th>
-                    <th>Assunto <i class="bi bi-arrow-down"></i></th>
+                    <th>Descrição <i class="bi bi-arrow-down"></i></th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for processo in processos %}
                 <tr>
                     <td><input type="checkbox" class="form-check-input row-checkbox" value="{{ processo.id }}"></td>
-                    <td><strong>{{ processo.nome }}</strong></td>
-                    <td class="text-muted">{{ processo.matricula }}</td>
-                    <td class="text-muted">{{ processo.numero_processo }}</td>
-                    <td class="text-muted">{{ processo.data_abertura|date:"d/m/Y" }}</td>
-                    <td class="text-muted">
-                        {% if processo.data_retorno %}
-                            {{ processo.data_retorno|date:"d/m/Y" }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
+                    <td><strong>{{ processo.numero }}</strong></td>
                     <td class="text-muted">{{ processo.setor_origem }}</td>
-                    <td>
-                        {% if processo.is_active %}
-                            <span class="badge bg-success">Active</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
-                        {% endif %}
-                    </td>
+                    <td class="text-muted">{{ processo.data_abertura|date:"d/m/Y" }}</td>
                     <td>
                         {% if processo.status == 'concluido' %}
                             <span class="badge bg-success">Concluído</span>
@@ -81,16 +62,27 @@
                             <span class="badge bg-info">Aberto</span>
                         {% endif %}
                     </td>
-                    <td class="text-muted">{{ processo.assunto|truncatechars:30 }}</td>
+                    <td class="text-muted">{{ processo.descricao|truncatechars:30 }}</td>
+                    <td>
+                        <a href="{% url 'editar_processo' processo.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="{% url 'deletar_processo' processo.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja deletar este processo?');">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
+                    <td colspan="7" class="text-center text-muted py-4">
                         <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
                         <br>
                         Nenhum processo encontrado.
                         <br>
-                        <small>Clique em "Nova linha" para adicionar o primeiro processo.</small>
+                        <small>Clique em "Novo Processo" para adicionar o primeiro.</small>
                     </td>
                 </tr>
                 {% endfor %}

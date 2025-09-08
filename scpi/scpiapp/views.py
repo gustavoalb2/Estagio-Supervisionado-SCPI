@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import Processo, Usuario
@@ -6,12 +6,49 @@ from datetime import datetime, date
 from django.utils import timezone
 
 def home(request):
-    return render(request, 'base.html')
+    return render(request, 'visualizarTabelas.html')
 
 def processo(request):
     return render(request, 'processo.html')
 
-def adicionar_processo(request):
+def adicionarTabela(request):
+    return render(request, 'adicionarTabela.html')
+
+def editarProcesso(request, processo_id):
+    processo = get_object_or_404(Processo, id=processo_id)
+    if request.method == 'POST':
+        try:
+            processo.numero = request.POST.get('numero_processo')
+            processo.setor_origem = request.POST.get('setor_origem')
+            data_abertura_str = request.POST.get('data_abertura')
+            if data_abertura_str:
+                processo.data_abertura = datetime.strptime(data_abertura_str, '%Y-%m-%d').date()
+            processo.status = request.POST.get('status')
+            processo.descricao = request.POST.get('descricao')
+            
+            processo.save()
+            messages.success(request, f'Processo {processo.numero} atualizado com sucesso!')
+            return redirect('tabela')
+        except Exception as e:
+            messages.error(request, f'Erro ao atualizar processo: {str(e)}')
+    
+    context = {
+        'processo': processo
+    }
+    return render(request, 'processo.html', context)
+
+def deletaProcesso(request, processo_id):
+    processo = get_object_or_404(Processo, id=processo_id)
+    if request.method == 'POST':
+        try:
+            numero_processo = processo.numero
+            processo.delete()
+            messages.success(request, f'Processo {numero_processo} deletado com sucesso!')
+        except Exception as e:
+            messages.error(request, f'Erro ao deletar processo: {str(e)}')
+    return redirect('tabela')
+
+def adicionarProcesso(request):
     if request.method == 'POST':
         try:
             # Obter dados do formulário
@@ -19,52 +56,27 @@ def adicionar_processo(request):
             matricula = request.POST.get('matricula')
             numero_processo = request.POST.get('numero_processo')
             data_abertura = request.POST.get('data_abertura')
-            data_retorno = request.POST.get('data_retorno')
-            bolsa = request.POST.get('bolsa')
             status = request.POST.get('status')
             setor_origem = request.POST.get('setor_origem')
-            assunto = request.POST.get('assunto')
             descricao = request.POST.get('descricao')
             
             # Validações básicas
-            if not all([nome, matricula, numero_processo, data_abertura, status, setor_origem, assunto]):
+            if not all([numero_processo, data_abertura, status, setor_origem]):
                 messages.error(request, 'Por favor, preencha todos os campos obrigatórios.')
                 return render(request, 'processo.html')
             
-            # Converter datas
-            data_abertura = datetime.strptime(data_abertura, '%Y-%m-%d').date()
-            data_retorno_obj = None
-            if data_retorno:
-                data_retorno_obj = datetime.strptime(data_retorno, '%Y-%m-%d').date()
+            # Converter data
+            data_abertura_obj = datetime.strptime(data_abertura, '%Y-%m-%d').date()
             
-            # Criar usuário temporário (em produção, usar o usuário logado)
-            usuario_atual, created = Usuario.objects.get_or_create(
-                username='admin',
-                defaults={
-                    'email': 'admin@example.com',
-                    'first_name': 'Admin',
-                    'last_name': 'Sistema',
-                    'tipo': Usuario.TiposUsuario.ADMIN,
-                }
+            # Criar e salvar o processo
+            novo_processo = Processo(
+                numero=numero_processo,
+                data_abertura=data_abertura_obj,
+                status=status,
+                setor_origem=setor_origem,
+                descricao=descricao
             )
-            
-            # Simular criação do processo (adaptado para a estrutura atual)
-            processo_data = {
-                'nome': nome,
-                'matricula': matricula,
-                'numero_processo': numero_processo,
-                'data_abertura': data_abertura,
-                'data_retorno': data_retorno_obj,
-                'setor_origem': setor_origem,
-                'assunto': assunto,
-                'status': status,
-                'descricao': descricao or '',
-                'criado_por': usuario_atual,
-            }
-            
-            # Por enquanto, vamos apenas simular o salvamento
-            # Em produção, descomente a linha abaixo quando a estrutura do banco estiver correta:
-            # processo = Processo.objects.create(**processo_data)
+            novo_processo.save()
             
             messages.success(request, f'Processo {numero_processo} criado com sucesso!')
             return redirect('tabela')
@@ -76,6 +88,7 @@ def adicionar_processo(request):
     return render(request, 'processo.html')
 
 def tabela(request):
+<<<<<<< Updated upstream
     # Criar dados de exemplo diretamente para demonstração
     # Em um caso real, estes viriam do banco de dados
     processos_exemplo = [
@@ -202,7 +215,26 @@ def tabela(request):
     ]
     
     # Passar os dados para o template
+=======
+    processos = Processo.objects.all()
+>>>>>>> Stashed changes
     context = {
-        'processos': processos_exemplo
+        'processos': processos
     }
     return render(request, 'tabela.html', context)
+
+def usuarios(request):
+    # Exemplo: pegar o usuário logado (em produção)
+    usuario = request.user if request.user.is_authenticated else None
+    # Se não estiver autenticado, pode exibir um usuário de exemplo
+    if not usuario or not hasattr(usuario, 'email'):
+        usuario = Usuario(
+            nome='Admin Sistema',
+            email='admin@example.com',
+            senha_hash='dummy',
+            tipo=Usuario.TiposUsuario.ADMIN
+        )
+    context = {
+        'usuario': usuario
+    }
+    return render(request, 'usuario.html', context)
