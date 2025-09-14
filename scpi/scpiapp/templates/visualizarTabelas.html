@@ -13,8 +13,18 @@
         </div>
     </div>
     <div class="row mt-4 ms-2">
-        <div class="d-flex flex-row gap-4">
-                <a href="/tabela/adicionarTabela" style="text-decoration: none; color: inherit;">
+        <div class="d-flex flex-row flex-wrap gap-4">
+            {% for tabela in tabelas %}
+            <a href="{% url 'tabela_processos' tabela.id %}" style="text-decoration: none; color: inherit;">
+                <div class="card card-ano text-center" style="width: 150px; height: 120px; border: 2px solid #222; border-radius: 10px; box-shadow: 2px 2px 8px #eee; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2">
+                        <span style="font-size: 1rem; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%;">{{ tabela.nome }}</span>
+                        <span style="font-size: 0.8rem; font-weight: 400; color: #666; margin-top: 5px;">{{ tabela.processos.count }} processo(s)</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+            <a href="/adicionarTabela" style="text-decoration: none; color: inherit;">
                 <div class="card card-ano text-center" style="width: 150px; height: 120px; border: 2px solid #222; border-radius: 10px; box-shadow: 2px 2px 8px #eee; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                     <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
                         <span style="font-size: 2rem;"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" stroke="#222" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="#222" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="#222" stroke-width="2"/></svg></span>

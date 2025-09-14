@@ -15,7 +15,7 @@ class Usuario(models.Model):
     def __str__(self):
         return self.nome
 
-class Tabela(models.Model):
+class TabelaProcessos(models.Model):
     nome = models.CharField(max_length=255, null=True)
     descricao = models.TextField(blank=True, null=True)
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='tabelas')
@@ -26,23 +26,32 @@ class Tabela(models.Model):
 
 class Processo(models.Model):
     class StatusProcesso(models.TextChoices):
-        ABERTO = 'aberto', 'Aberto'
         EM_ANDAMENTO = 'em_andamento', 'Em Andamento'
         CONCLUIDO = 'concluido', 'Concluído'
 
-    numero = models.CharField(max_length=50, unique=True, null=True)
-    setor_origem = models.CharField(max_length=100, null=True)
-    data_abertura = models.DateField(null=True)
-    status = models.CharField(max_length=15, choices=StatusProcesso.choices, default=StatusProcesso.ABERTO, null=True)
-    descricao = models.TextField(blank=True, null=True)
-    tabela = models.ForeignKey(Tabela, on_delete=models.CASCADE, related_name='processos', null=True, blank=True)
+    class BolsaOpcoes(models.TextChoices):
+        SIM = 'Sim', 'Sim'
+        NAO = 'Não', 'Não'
+
+    class SetorOpcoes(models.TextChoices):
+        CIC = 'CIC', 'CIC'
+        DPQ = 'DPQ', 'DPQ'
+
+    nome = models.CharField(max_length=255)
+    matricula = models.CharField(max_length=50, blank=True, null=True)
+    numero_processo = models.CharField(max_length=50, unique=True, null=True)
+    data_abertura = models.DateField(null=True, blank=True)
+    data_retorno = models.DateField(null=True, blank=True)
+    setor = models.CharField(max_length=100, choices=SetorOpcoes.choices, null=True, blank=True)
+    bolsa = models.CharField(max_length=3, choices=BolsaOpcoes.choices, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=StatusProcesso.choices, null=True, blank=True)
+    assunto = models.TextField(blank=True, null=True)
+    observacoes = models.TextField(blank=True, null=True)
+    tabela = models.ForeignKey(TabelaProcessos, on_delete=models.CASCADE, related_name='processos', null=True, blank=True)
     data_criacao = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"Processo #{self.numero} - {self.get_status_display()}"
-
-
-
+        return f"Processo #{self.numero_processo} - {self.nome}"
 
 class Relatorio(models.Model):
     class TiposRelatorio(models.TextChoices):

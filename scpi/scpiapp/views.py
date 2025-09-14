@@ -1,227 +1,138 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
-from .models import Processo, Usuario
+from .models import Processo, Usuario, TabelaProcessos
+from .forms import ProcessoForm, TabelaForm
 from datetime import datetime, date
 from django.utils import timezone
 
 def home(request):
-    return render(request, 'visualizarTabelas.html')
+    tabelas = TabelaProcessos.objects.all()
+    context = {
+        'tabelas': tabelas
+    }
+    return render(request, 'visualizarTabelas.html', context)
 
 def processo(request):
-    return render(request, 'processo.html')
+    processos = TabelaProcessos.objects.all()
+    return render(request, 'tabelaProcessos.html', {'processos': processos})
 
 def adicionarTabela(request):
+    if request.method == 'POST':
+        try:
+            nome_tabela = request.POST.get('titulo')
+            descricao_tabela = request.POST.get('descricao')
+            
+            # Supondo que o usuário esteja logado. 
+            # Em um cenário real, você teria um sistema de autenticação.
+            # Por enquanto, vamos pegar o primeiro usuário ou criar um se não existir.
+            usuario, created = Usuario.objects.get_or_create(
+                id=1, 
+                defaults={'nome': 'Usuário Padrão', 'email': 'padrao@example.com'}
+            )
+
+            if not nome_tabela:
+                messages.error(request, 'O título da tabela é obrigatório.')
+                return render(request, 'adicionarTabela.html')
+
+            nova_tabela = TabelaProcessos(
+                nome=nome_tabela,
+                descricao=descricao_tabela,
+                usuario=usuario
+            )
+            nova_tabela.save()
+            
+            messages.success(request, f'Tabela "{nome_tabela}" criada com sucesso!')
+            return redirect('home') # Redireciona para a página inicial ou de visualização de tabelas
+
+        except Exception as e:
+            messages.error(request, f'Erro ao criar a tabela: {str(e)}')
+            
     return render(request, 'adicionarTabela.html')
 
 def editarProcesso(request, processo_id):
     processo = get_object_or_404(Processo, id=processo_id)
     if request.method == 'POST':
-        try:
-            processo.numero = request.POST.get('numero_processo')
-            processo.setor_origem = request.POST.get('setor_origem')
-            data_abertura_str = request.POST.get('data_abertura')
-            if data_abertura_str:
-                processo.data_abertura = datetime.strptime(data_abertura_str, '%Y-%m-%d').date()
-            processo.status = request.POST.get('status')
-            processo.descricao = request.POST.get('descricao')
-            
-            processo.save()
-            messages.success(request, f'Processo {processo.numero} atualizado com sucesso!')
-            return redirect('tabela')
-        except Exception as e:
-            messages.error(request, f'Erro ao atualizar processo: {str(e)}')
-    
+        form = ProcessoForm(request.POST, instance=processo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Processo "{processo.numero_processo}" atualizado com sucesso!')
+            if processo.tabela:
+                return redirect('tabela_processos', tabela_id=processo.tabela.id)
+            else:
+                return redirect('visualizarTabelas')
+        else:
+            messages.error(request, 'Erro ao atualizar o processo. Verifique os dados informados.')
+    else:
+        form = ProcessoForm(instance=processo)
+
     context = {
-        'processo': processo
+        'form': form,
+        'tabela': processo.tabela,
+        'processo': processo  # Passa o objeto processo para o template
     }
-    return render(request, 'processo.html', context)
+    return render(request, 'processo_form.html', context)
 
 def deletaProcesso(request, processo_id):
     processo = get_object_or_404(Processo, id=processo_id)
+    tabela_id = processo.tabela.id if processo.tabela else None
+
     if request.method == 'POST':
         try:
-            numero_processo = processo.numero
+            numero_processo = processo.numero_processo
             processo.delete()
             messages.success(request, f'Processo {numero_processo} deletado com sucesso!')
         except Exception as e:
             messages.error(request, f'Erro ao deletar processo: {str(e)}')
-    return redirect('tabela')
+    
+    if tabela_id:
+        return redirect('tabela_processos', tabela_id=tabela_id)
+    else:
+        return redirect('visualizarTabelas')
 
-def adicionarProcesso(request):
+def adicionarProcesso(request, tabela_id=None):
+    tabela = None
+    if tabela_id:
+        tabela = get_object_or_404(TabelaProcessos, pk=tabela_id)
+
     if request.method == 'POST':
-        try:
-            # Obter dados do formulário
-            nome = request.POST.get('nome')
-            matricula = request.POST.get('matricula')
-            numero_processo = request.POST.get('numero_processo')
-            data_abertura = request.POST.get('data_abertura')
-            status = request.POST.get('status')
-            setor_origem = request.POST.get('setor_origem')
-            descricao = request.POST.get('descricao')
-            
-            # Validações básicas
-            if not all([numero_processo, data_abertura, status, setor_origem]):
-                messages.error(request, 'Por favor, preencha todos os campos obrigatórios.')
-                return render(request, 'processo.html')
-            
-            # Converter data
-            data_abertura_obj = datetime.strptime(data_abertura, '%Y-%m-%d').date()
-            
-            # Criar e salvar o processo
-            novo_processo = Processo(
-                numero=numero_processo,
-                data_abertura=data_abertura_obj,
-                status=status,
-                setor_origem=setor_origem,
-                descricao=descricao
-            )
-            novo_processo.save()
-            
-            messages.success(request, f'Processo {numero_processo} criado com sucesso!')
-            return redirect('tabela')
-            
-        except Exception as e:
-            messages.error(request, f'Erro ao criar processo: {str(e)}')
-            return render(request, 'processo.html')
-    
-    return render(request, 'processo.html')
+        form = ProcessoForm(request.POST)
+        if form.is_valid():
+            processo = form.save(commit=False)
+            if tabela:
+                processo.tabela = tabela
+            processo.save()
+            messages.success(request, f'Processo "{processo.numero_processo}" adicionado com sucesso!')
+            if tabela:
+                return redirect('tabela_processos', tabela_id=tabela.id)
+            else:
+                return redirect('visualizarTabelas')
+        else:
+            messages.error(request, 'Erro ao adicionar o processo. Verifique os dados informados.')
+    else:
+        form = ProcessoForm()
 
-def tabela(request):
-<<<<<<< Updated upstream
-    # Criar dados de exemplo diretamente para demonstração
-    # Em um caso real, estes viriam do banco de dados
-    processos_exemplo = [
-        {
-            'id': 1,
-            'nome': 'João Silva',
-            'matricula': 'MAT2025001',
-            'numero_processo': 'PROC-2025001',
-            'data_abertura': date(2025, 1, 15),
-            'data_retorno': None,
-            'setor_origem': 'Financeiro',
-            'is_active': True,
-            'status': 'em_andamento',
-            'assunto': 'Solicitação de reembolso de despesas médicas',
-        },
-        {
-            'id': 2,
-            'nome': 'Maria Santos',
-            'matricula': 'MAT2025002',
-            'numero_processo': 'PROC-2025002',
-            'data_abertura': date(2025, 2, 10),
-            'data_retorno': date(2025, 2, 20),
-            'setor_origem': 'RH',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Alteração de dados cadastrais',
-        },
-        {
-            'id': 3,
-            'nome': 'Pedro Oliveira',
-            'matricula': 'MAT2025003',
-            'numero_processo': 'PROC-2025003',
-            'data_abertura': date(2025, 3, 5),
-            'data_retorno': None,
-            'setor_origem': 'TI',
-            'is_active': False,
-            'status': 'aberto',
-            'assunto': 'Solicitação de acesso ao sistema',
-        },
-        {
-            'id': 4,
-            'nome': 'Ana Costa',
-            'matricula': 'MAT2025004',
-            'numero_processo': 'PROC-2025004',
-            'data_abertura': date(2025, 4, 1),
-            'data_retorno': None,
-            'setor_origem': 'Operações',
-            'is_active': True,
-            'status': 'em_andamento',
-            'assunto': 'Manutenção de equipamentos',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-        {
-            'id': 5,
-            'nome': 'Carlos Ferreira',
-            'matricula': 'MAT2025005',
-            'numero_processo': 'PROC-2025005',
-            'data_abertura': date(2025, 5, 12),
-            'data_retorno': date(2025, 5, 25),
-            'setor_origem': 'Marketing',
-            'is_active': True,
-            'status': 'concluido',
-            'assunto': 'Aprovação de campanha publicitária',
-        },
-    ]
-    
-    # Passar os dados para o template
-=======
-    processos = Processo.objects.all()
->>>>>>> Stashed changes
     context = {
-        'processos': processos
+        'form': form,
+        'tabela': tabela
     }
-    return render(request, 'tabela.html', context)
+    return render(request, 'processo_form.html', context)
+
+def tabela(request, tabela_id):
+    tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
+    processos = Processo.objects.filter(tabela=tabela)
+
+    # Contagem de processos por setor
+    count_cic = processos.filter(setor='CIC').count()
+    count_dpq = processos.filter(setor='DPQ').count()
+
+    context = {
+        'processos': processos,
+        'tabela': tabela,
+        'count_cic': count_cic,
+        'count_dpq': count_dpq,
+    }
+    return render(request, 'tabelaProcessos.html', context)
 
 def usuarios(request):
     # Exemplo: pegar o usuário logado (em produção)

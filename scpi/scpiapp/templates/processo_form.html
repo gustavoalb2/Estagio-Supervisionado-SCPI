@@ -16,107 +16,72 @@
             
             <div class="card shadow-sm">
                 <div class="card-header bg-white border-bottom">
-                    <h4 class="card-title mb-0 text-dark">Adicionar processo</h4>
+''                    <h4 class="card-title mb-0 text-dark">{% if processo %}Editar Processo{% else %}Adicionar Processo{% endif %}</h4>
                 </div>
                 
                 <div class="card-body p-4">
-                    <form method="post" action="{% url 'adicionar_processo' %}">
+                    <form method="post" action="{% if processo %}{% url 'editar_processo' processo.id %}{% elif tabela %}{% url 'adicionar_processo_tabela' tabela.id %}{% else %}{% url 'adicionar_processo' %}{% endif %}">
                         {% csrf_token %}
                         
-                        <!-- Primeira linha: Nome, Matrícula, Nº processo -->
-                        <div class="row mb-3">
+                        <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="nome" class="form-label text-dark fw-medium">Nome</label>
-                                <input type="text" class="form-control" id="nome" name="nome" required>
+                                <label for="nome" class="form-label">Nome</label>
+                                {{ form.nome }}
                             </div>
                             <div class="col-md-4">
-                                <label for="matricula" class="form-label text-dark fw-medium">Matrícula</label>
-                                <input type="text" class="form-control" id="matricula" name="matricula" required>
+                                <label for="matricula" class="form-label">Matrícula</label>
+                                {{ form.matricula }}
                             </div>
                             <div class="col-md-4">
-                                <label for="numero_processo" class="form-label text-dark fw-medium">Nº processo</label>
-                                <input type="text" class="form-control" id="numero_processo" name="numero_processo" required>
+                                <label for="numero_processo" class="form-label">Nº processo</label>
+                                {{ form.numero_processo }}
                             </div>
-                        </div>
 
-                        <!-- Segunda linha: Data de abertura, Data de retorno -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="data_abertura" class="form-label text-dark fw-medium">Data de abertura</label>
+                            <div class="col-md-3">
+                                <label for="data_abertura" class="form-label">Data de abertura</label>
                                 <div class="input-group">
-                                    <input type="date" class="form-control" id="data_abertura" name="data_abertura" required>
-                                    <span class="input-group-text">
-                                        <i class="bi bi-calendar3"></i>
-                                    </span>
+                                    {{ form.data_abertura }}
+                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="data_retorno" class="form-label text-dark fw-medium">Data de retorno</label>
+                            <div class="col-md-3">
+                                <label for="data_retorno" class="form-label">Data de retorno</label>
                                 <div class="input-group">
-                                    <input type="date" class="form-control" id="data_retorno" name="data_retorno">
-                                    <span class="input-group-text">
-                                        <i class="bi bi-calendar3"></i>
-                                    </span>
+                                    {{ form.data_retorno }}
+                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Terceira linha: Bolsa, Status, Setor -->
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="bolsa" class="form-label text-dark fw-medium">Bolsa?</label>
-                                <select class="form-select" id="bolsa" name="bolsa">
-                                    <option value="" selected disabled>Selecione...</option>
-                                    <option value="sim">Sim</option>
-                                    <option value="nao">Não</option>
-                                </select>
+                            <div class="col-md-2">
+                                <label for="bolsa" class="form-label">Bolsa?</label>
+                                {{ form.bolsa }}
                             </div>
-                            <div class="col-md-4">
-                                <label for="status" class="form-label text-dark fw-medium">Status</label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="" selected disabled>Selecione...</option>
-                                    <option value="aberto">Aberto</option>
-                                    <option value="em_andamento">Em andamento</option>
-                                    <option value="concluido">Concluído</option>
-                                </select>
+                            <div class="col-md-2">
+                                <label for="status" class="form-label">Status</label>
+                                {{ form.status }}
                             </div>
-                            <div class="col-md-4">
-                                <label for="setor" class="form-label text-dark fw-medium">Setor</label>
-                                <select class="form-select" id="setor" name="setor_origem" required>
-                                    <option value="" selected disabled>Selecione...</option>
-                                    <option value="CIC">CIC</option>
-                                    <option value="DPQ">DPQ</option>
-                                    <option value="Financeiro">Financeiro</option>
-                                    <option value="RH">RH</option>
-                                    <option value="TI">TI</option>
-                                    <option value="Operações">Operações</option>
-                                    <option value="Marketing">Marketing</option>
-                                </select>
+                            <div class="col-md-2">
+                                <label for="setor" class="form-label">Setor</label>
+                                {{ form.setor }}
                             </div>
-                        </div>
+                            
+                            <div class="col-md-6">
+                                <label for="assunto" class="form-label">Assunto</label>
+                                {{ form.assunto }}
+                            </div>
 
-                        <!-- Quarta linha: Assunto -->
-                        <div class="row mb-3">
                             <div class="col-12">
-                                <label for="assunto" class="form-label text-dark fw-medium">Assunto</label>
-                                <textarea class="form-control" id="assunto" name="assunto" rows="3" placeholder="Descreva o assunto do processo..." required></textarea>
+                                <label for="observacoes" class="form-label">Observações</label>
+                                {{ form.observacoes }}
                             </div>
                         </div>
-
-                        <!-- Quinta linha: Observações -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <label for="observacoes" class="form-label text-dark fw-medium">Observações</label>
-                                <textarea class="form-control" id="observacoes" name="descricao" rows="4" placeholder="Adicione observações adicionais se necessário..."></textarea>
-                            </div>
-                        </div>
-
+                        
                         <!-- Botões de ação -->
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{% url 'tabela' %}" class="btn btn-outline-secondary px-4">
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% if tabela %}{% url 'tabela_processos' tabela.id %}{% else %}{% url 'visualizarTabelas' %}{% endif %}" class="btn btn-outline-secondary px-4" style="background-color: #FFFF00;">
                                 Cancelar
                             </a>
-                            <button type="submit" class="btn btn-success px-4" id="btnSalvar">
+                            <button type="submit" class="btn btn-success px-4" id="btnSalvar" style="background-color: #00FF00;">
                                 <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner" role="status" aria-hidden="true"></span>
                                 <span id="btnText">Salvar</span>
                             </button>
