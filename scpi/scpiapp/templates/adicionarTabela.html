@@ -3,7 +3,7 @@
 <div class="container-fluid" style="background: #f7f8fc; min-height: 100vh;">
     <div class="row">
         <div class="col-12 mt-4">
-            <h4 style="margin-left: 1rem; font-weight: 400;">Adicionar tabela</h4>
+            <h4 style="margin-left: 1rem; font-weight: 400;">{% if tabela %}Editar tabela{% else %}Adicionar tabela{% endif %}</h4>
         </div>
     </div>
     <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
@@ -14,15 +14,20 @@
                         {% csrf_token %}
                         <div class="mb-4">
                             <label for="titulo" class="form-label" style="font-weight: 400;">Título</label>
-                            <input type="text" class="form-control" id="titulo" name="titulo" style="border: 1px solid #222; border-radius: 8px; background: #fff; box-shadow: none;" required>
+                            <input type="text" class="form-control" id="titulo" name="titulo" 
+                                   style="border: 1px solid #222; border-radius: 8px; background: #fff; box-shadow: none;" 
+                                   required value="{% if tabela %}{{ tabela.nome }}{% endif %}">
                         </div>
                         <div class="mb-4">
                             <label for="descricao" class="form-label" style="font-weight: 400;">Descrição</label>
-                            <textarea class="form-control" id="descricao" name="descricao" rows="4" style="border: 1px solid #222; border-radius: 8px; background: #fff; box-shadow: none; resize: none;"></textarea>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="4" 
+                                      style="border: 1px solid #222; border-radius: 8px; background: #fff; box-shadow: none; resize: none;">{% if tabela %}{{ tabela.descricao }}{% endif %}</textarea>
                         </div>
                         <div class="d-flex justify-content-center gap-3 mt-4">
                             <a href="/" class="btn" style="background: #fff966; color: #222; border-radius: 8px; min-width: 120px; font-weight: 500; border: 1px solid #fff966;">Cancelar</a>
-                            <button type="submit" class="btn" style="background: #7cff8c; color: #222; border-radius: 8px; min-width: 120px; font-weight: 500; border: 1px solid #7cff8c;">Salvar</button>
+                            <button type="submit" class="btn" style="background: #7cff8c; color: #222; border-radius: 8px; min-width: 120px; font-weight: 500; border: 1px solid #7cff8c;">
+                                {% if tabela %}Atualizar{% else %}Salvar{% endif %}
+                            </button>
                         </div>
                     </form>
                 </div>

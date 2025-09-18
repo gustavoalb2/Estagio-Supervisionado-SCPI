@@ -11,4 +11,8 @@ urlpatterns = [
     path('processo/editar/<int:processo_id>/', views.editarProcesso, name='editar_processo'),
     path('processo/deletar/<int:processo_id>/', views.deletaProcesso, name='deletar_processo'),
     path('usuario/', views.usuarios, name='usuarios'),
+    path('tabela/editar/<int:tabela_id>/', views.editar_tabela, name='editar_tabela'),
+    path('tabela/excluir/<int:tabela_id>/', views.excluir_tabela, name='excluir_tabela'),
+    path('tabela/<int:tabela_id>/exportar/xlsx/', views.exportar_xlsx, name='exportar_processos_xlsx'),
+    path('tabela/<int:tabela_id>/importar/', views.importar_processos, name='importar_processos'),
 ]

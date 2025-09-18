@@ -9,13 +9,14 @@
             <p class="text-muted mb-0">{{ tabela.descricao }}</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-funnel"></i> Filtros
-            </button>
-            <button class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-upload"></i> Exportar
-            </button>
-            <button class="btn btn-outline-secondary btn-sm">
+            <form method="get" action="{% url 'tabela_processos' tabela.id %}" class="d-flex" role="search">
+                <input class="form-control form-control-sm" type="search" name="q" placeholder="Procurar Processo" aria-label="Procurar" value="{{ request.GET.q }}">
+                <button class="btn btn-sm btn-primary ms-1" type="submit">Procurar</button>
+            </form>
+            <a href="{% url 'exportar_processos_xlsx' tabela.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-upload"></i> Exportar Excel
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importarModal">
                 <i class="bi bi-download"></i> Importar
             </button>
             <a href="{% url 'adicionar_processo_tabela' tabela.id %}" class="btn btn-primary btn-sm">
@@ -23,6 +24,49 @@
             </a>
         </div>
     </div>
+
+    <!-- Modal de Importação -->
+    <div class="modal fade" id="importarModal" tabindex="-1" aria-labelledby="importarModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importarModalLabel">Importar Processos de Planilha Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'importar_processos' tabela.id %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="excel_file" class="form-label">Selecione o arquivo Excel (.xlsx)</label>
+                            <input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                            <div class="form-text mt-2">
+                                <strong>Formato esperado:</strong>
+                                <p>A planilha deve conter as seguintes colunas (na ordem):</p>
+                                <ol>
+                                    <li>Nome (obrigatório)</li>
+                                    <li>Matrícula</li>
+                                    <li>Número do Processo</li>
+                                    <li>Data de Abertura</li>
+                                    <li>Data de Retorno</li>
+                                    <li>Setor (CIC ou DPQ)</li>
+                                    <li>Bolsa (Sim ou Não)</li>
+                                    <li>Status (Em Andamento ou Concluído)</li>
+                                    <li>Assunto</li>
+                                    <li>Observações</li>
+                                </ol>
+                                <p class="text-muted small">A primeira linha deve conter os cabeçalhos. Processos com números duplicados serão ignorados.</p>
+                                <div class="alert alert-info">
+                                    <strong>Nota:</strong> A planilha pode conter cabeçalhos com nomes diferentes, desde que estejam na ordem correta. Se houver cabeçalhos, o sistema tentará mapear automaticamente os campos.
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Importar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Tabela -->
     <div class="table-responsive">
@@ -66,8 +110,11 @@
                             <span class="badge bg-info">{{ processo.get_status_display }}</span>
                         {% endif %}
                     </td>
-                    <td class="text-muted col-assunto">{{ processo.assunto }}</td>
+                    <td class="col-assunto">{{ processo.assunto }}</td>
                     <td class="col-acoes">
+                        <button type="button" class="btn btn-outline-info btn-sm btn-visualizar" data-bs-toggle="modal" data-bs-target="#observacoesModal{{ processo.id }}">
+                            <i class="bi bi-eye"></i>
+                        </button>
                         <a href="{% url 'editar_processo' processo.id %}" class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-pencil"></i>
                         </a>
@@ -81,7 +128,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="11" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4">
                         <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
                         <br>
                         Nenhum processo encontrado.
@@ -93,6 +140,60 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Modais de Observações -->
+    {% for processo in processos %}
+    <div class="modal fade" id="observacoesModal{{ processo.id }}" tabindex="-1" aria-labelledby="observacoesModalLabel{{ processo.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="observacoesModalLabel{{ processo.id }}">Observações do Processo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <strong>Processo: </strong>{{ processo.numero_processo }}
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ processo.nome }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ processo.get_status_display }}</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><strong>Matrícula:</strong> {{ processo.matricula|default:"Não informada" }}</p>
+                                    <p><strong>Data de Abertura:</strong> {{ processo.data_abertura|date:"d/m/Y"|default:"Não informada" }}</p>
+                                    <p><strong>Setor:</strong> {{ processo.get_setor_display|default:"Não informado" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Bolsa:</strong> {{ processo.get_bolsa_display|default:"Não informada" }}</p>
+                                    <p><strong>Data de Retorno:</strong> {{ processo.data_retorno|date:"d/m/Y"|default:"Não informada" }}</p>
+                                    <p><strong>Status:</strong> {{ processo.get_status_display|default:"Não informado" }}</p>
+                                </div>
+                            </div>
+                            <p class="card-text"><strong>Assunto:</strong> {{ processo.assunto|default:"Não informado" }}</p>
+                            <div class="border p-3 bg-light rounded">
+                                <h6>Observações:</h6>
+                                <p class="mb-0">{% if processo.observacoes %}{{ processo.observacoes|linebreaksbr }}{% else %}Nenhuma observação cadastrada.{% endif %}</p>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <small class="text-muted">
+                                {% if processo.data_criacao %}
+                                    Última atualização: {{ processo.data_criacao|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    Sem informação de data de atualização
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 
     <!-- Informações Adicionais -->
     <div class="card mt-4">
@@ -158,10 +259,7 @@
 }
 
 .col-assunto {
-    width: 12%;
-}
-
-.col-assunto {
+    width: 15%;
     white-space: normal;
     word-break: break-word;
 }
@@ -187,5 +285,64 @@
 .card-body p {
     margin: 0;  
 }
+
+/* Estilo para o botão de visualizar observações */
+.btn-outline-info:hover {
+    background-color: #0dcaf0;
+    color: #fff;
+}
+
+/* Estilo para o modal de observações */
+.modal-body .card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.modal-body .border {
+    background-color: #f8f9fa;
+    border-color: #dee2e6 !important;
+}
+
+/* Tooltip para ícones */
+[data-bs-toggle="tooltip"] {
+    cursor: pointer;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar todos os modais
+        var modais = document.querySelectorAll('.modal');
+        modais.forEach(function(modal) {
+            new bootstrap.Modal(modal);
+        });
+        
+        // Adicionar tooltips apenas aos botões de editar e excluir
+        document.querySelectorAll('.col-acoes .btn:not(.btn-visualizar)').forEach(function(btn) {
+            if (btn.querySelector('.bi-pencil')) {
+                btn.setAttribute('data-bs-toggle', 'tooltip');
+                btn.setAttribute('data-bs-placement', 'top');
+                btn.setAttribute('title', 'Editar Processo');
+            } else if (btn.querySelector('.bi-trash')) {
+                btn.setAttribute('data-bs-toggle', 'tooltip');
+                btn.setAttribute('data-bs-placement', 'top');
+                btn.setAttribute('title', 'Excluir Processo');
+            }
+        });
+        
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Adicionar título aos botões de visualizar sem interferir no modal
+        document.querySelectorAll('.btn-visualizar').forEach(function(btn) {
+            // Apenas adicionamos o atributo title sem mudar o data-bs-toggle
+            btn.setAttribute('title', 'Visualizar Observações');
+        });
+    });
+</script>
 {% endblock %}
