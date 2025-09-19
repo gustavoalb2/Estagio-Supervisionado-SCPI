@@ -335,6 +335,7 @@ def importar_processos(request, tabela_id):
             
             processos_importados = 0
             processos_ignorados = 0
+            erros_detalhados = []
             
             # Determinar cabeçalhos e suas posições
             headers = None
@@ -371,7 +372,7 @@ def importar_processos(request, tabela_id):
                 assunto_idx = header_map.get("assunto", 8)
                 observacoes_idx = header_map.get("observações", 9)
             
-            for row in sheet.iter_rows(min_row=2, values_only=True):
+            for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
                 # Verificar se a linha tem dados suficientes
                 if not row or len(row) < 1 or not row[nome_idx]:  # Verificar se pelo menos o nome existe
                     continue  # Pular linhas vazias ou sem nome
@@ -380,8 +381,51 @@ def importar_processos(request, tabela_id):
                 nome = row[nome_idx] if len(row) > nome_idx and row[nome_idx] else ""
                 matricula = row[matricula_idx] if len(row) > matricula_idx and row[matricula_idx] else None
                 numero_processo = row[numero_processo_idx] if len(row) > numero_processo_idx and row[numero_processo_idx] else None
-                data_abertura = row[data_abertura_idx] if len(row) > data_abertura_idx and row[data_abertura_idx] else None
-                data_retorno = row[data_retorno_idx] if len(row) > data_retorno_idx and row[data_retorno_idx] else None
+                
+                # Processamento de datas - convertendo para formato adequado ao Django
+                data_abertura = None
+                data_retorno = None
+                
+                try:
+                    if len(row) > data_abertura_idx and row[data_abertura_idx]:
+                        # Se for um objeto datetime do Excel
+                        if hasattr(row[data_abertura_idx], 'date'):
+                            data_abertura = row[data_abertura_idx].date()
+                        # Se for uma string, tenta converter para data
+                        elif isinstance(row[data_abertura_idx], str):
+                            try:
+                                # Tenta vários formatos comuns de data
+                                for fmt in ['%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y']:
+                                    try:
+                                        data_abertura = datetime.strptime(row[data_abertura_idx], fmt).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                            except Exception:
+                                pass
+                except Exception as date_error:
+                    erros_detalhados.append(f"Linha {row_num}: Erro ao processar data de abertura: {date_error}")
+
+                try:
+                    if len(row) > data_retorno_idx and row[data_retorno_idx]:
+                        # Se for um objeto datetime do Excel
+                        if hasattr(row[data_retorno_idx], 'date'):
+                            data_retorno = row[data_retorno_idx].date()
+                        # Se for uma string, tenta converter para data
+                        elif isinstance(row[data_retorno_idx], str):
+                            try:
+                                # Tenta vários formatos comuns de data
+                                for fmt in ['%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y']:
+                                    try:
+                                        data_retorno = datetime.strptime(row[data_retorno_idx], fmt).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                            except Exception:
+                                pass
+                except Exception as date_error:
+                    erros_detalhados.append(f"Linha {row_num}: Erro ao processar data de retorno: {date_error}")
+                
                 setor = row[setor_idx] if len(row) > setor_idx and row[setor_idx] else None
                 bolsa = row[bolsa_idx] if len(row) > bolsa_idx and row[bolsa_idx] else None
                 status = row[status_idx] if len(row) > status_idx and row[status_idx] else None
@@ -391,6 +435,7 @@ def importar_processos(request, tabela_id):
                 # Verificar se já existe um processo com o mesmo número
                 if numero_processo and Processo.objects.filter(numero_processo=numero_processo).exists():
                     processos_ignorados += 1
+                    erros_detalhados.append(f"Linha {row_num}: Processo com número '{numero_processo}' já existe no sistema.")
                     continue
                 
                 # Criar o processo com os valores extraídos na ordem correta
@@ -440,6 +485,7 @@ def importar_processos(request, tabela_id):
                 except Exception as inner_e:
                     # Log detalhado do erro específico desta linha
                     processos_ignorados += 1
+                    erros_detalhados.append(f"Linha {row_num}: Erro ao criar processo - {str(inner_e)}")
                     continue
             
             if processos_importados > 0:
@@ -451,7 +497,15 @@ def importar_processos(request, tabela_id):
                 messages.success(request, mensagem)
             else:
                 if processos_ignorados > 0:
-                    messages.warning(request, f"Nenhum processo importado. {processos_ignorados} processos foram ignorados por duplicação ou erro.")
+                    erro_msg = f"Nenhum processo importado. {processos_ignorados} processos foram ignorados por duplicação ou erro."
+                    if erros_detalhados:
+                        erro_msg += " Detalhes dos erros foram registrados para o administrador do sistema."
+                        # Limitamos a 5 erros para não sobrecarregar a mensagem
+                        for i, erro in enumerate(erros_detalhados[:5]):
+                            messages.error(request, f"Erro {i+1}: {erro}")
+                        if len(erros_detalhados) > 5:
+                            messages.error(request, f"... e mais {len(erros_detalhados) - 5} erros.")
+                    messages.warning(request, erro_msg)
                 else:
                     messages.warning(request, "Nenhum processo válido encontrado no arquivo.")
         except Exception as e:
