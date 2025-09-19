@@ -73,15 +73,54 @@
         <table class="table table-hover">
             <thead class="table-light">
                 <tr>
-                    <th>Nome <i class="bi bi-arrow-down"></i></th>
-                    <th>Matrícula <i class="bi bi-arrow-down"></i></th>
-                    <th>Nº processo <i class="bi bi-arrow-down"></i></th>
-                    <th>Data de abertura <i class="bi bi-arrow-down"></i></th>
-                    <th>Data de retorno <i class="bi bi-arrow-down"></i></th>
-                    <th>Setor <i class="bi bi-arrow-down"></i></th>
-                    <th>Bolsa <i class="bi bi-arrow-down"></i></th>
-                    <th>Status <i class="bi bi-arrow-down"></i></th>
-                    <th>Assunto <i class="bi bi-arrow-down"></i></th>
+                    <th>
+                        <a href="?sort=nome&direction={% if sort_by == 'nome' and sort_direction == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-dark">
+                            Nome 
+                            {% if sort_by == 'nome' %}
+                                {% if sort_direction == 'asc' %}
+                                    <i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-arrow-down-up text-muted"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>Matrícula</th>
+                    <th>Nº processo</th>
+                    <th>
+                        <a href="?sort=data_abertura&direction={% if sort_by == 'data_abertura' and sort_direction == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-dark">
+                            Data de abertura
+                            {% if sort_by == 'data_abertura' %}
+                                {% if sort_direction == 'asc' %}
+                                    <i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-arrow-down-up text-muted"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?sort=data_retorno&direction={% if sort_by == 'data_retorno' and sort_direction == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-dark">
+                            Data de retorno
+                            {% if sort_by == 'data_retorno' %}
+                                {% if sort_direction == 'asc' %}
+                                    <i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-arrow-down-up text-muted"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>Setor</th>
+                    <th>Bolsa</th>
+                    <th>Status</th>
+                    <th>Assunto</th>
                     <th class="col-acoes">Ações</th>
                 </tr>
             </thead>
@@ -246,9 +285,28 @@
     opacity: 0.3;
 }
 
-.bi-arrow-down {
+.bi-arrow-down,
+.bi-arrow-up,
+.bi-arrow-down-up {
     font-size: 0.75rem;
     color: #6c757d;
+}
+
+.bi-arrow-up,
+.bi-arrow-down {
+    color: #0d6efd;
+}
+
+th a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+th a:hover {
+    text-decoration: underline;
+    color: #0d6efd !important;
 }
 
 .table-responsive {

@@ -5,3 +5,5 @@ Instalar Django
 Instalar BootStrap
 Instalar MySql
 Instalar Python mysqlclient
+Instalar reportlab
+Instalar openpyxl

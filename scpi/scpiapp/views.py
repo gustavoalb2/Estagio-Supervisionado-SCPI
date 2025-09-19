@@ -132,6 +132,11 @@ def adicionarProcesso(request, tabela_id=None):
 def tabela(request, tabela_id):
     tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
     query = request.GET.get('q')
+    
+    # Parâmetros de ordenação
+    sort_by = request.GET.get('sort', 'nome')  # Ordenação padrão por nome
+    sort_direction = request.GET.get('direction', 'asc')  # Direção padrão ascendente
+    
     if query:
         processos = Processo.objects.filter(
             Q(tabela=tabela) & 
@@ -141,7 +146,24 @@ def tabela(request, tabela_id):
         )
     else:
         processos = Processo.objects.filter(tabela=tabela)
-
+    
+    # Aplicar ordenação
+    if sort_by == 'nome':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-nome')
+        else:
+            processos = processos.order_by('nome')
+    elif sort_by == 'data_abertura':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_abertura')
+        else:
+            processos = processos.order_by('data_abertura')
+    elif sort_by == 'data_retorno':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_retorno')
+        else:
+            processos = processos.order_by('data_retorno')
+    
     # Contagem de processos por setor
     count_cic = processos.filter(setor='CIC').count()
     count_dpq = processos.filter(setor='DPQ').count()
@@ -151,6 +173,8 @@ def tabela(request, tabela_id):
         'tabela': tabela,
         'count_cic': count_cic,
         'count_dpq': count_dpq,
+        'sort_by': sort_by,
+        'sort_direction': sort_direction,
     }
     return render(request, 'tabelaProcessos.html', context)
 
@@ -203,7 +227,7 @@ def excluir_tabela(request, tabela_id):
     context = {
         'tabela': tabela
     }
-    return render(request, 'excluir_tabela.html', context)
+    return render(request, 'confirmar_exclusao_tabela.html', context)
 
 def exportar_xlsx(request, tabela_id):
     tabela = get_object_or_404(TabelaProcessos, id=tabela_id)

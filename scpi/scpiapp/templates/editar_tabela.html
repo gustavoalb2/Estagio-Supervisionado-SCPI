@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid" style="background: #f7f8fc; min-height: 100vh;">
+    <div class="row">
+        <div class="col-12 mt-4">
+            <h4 style="margin-left: 1rem; font-weight: 400;">Editar tabela</h4>
+        </div>
+    </div>
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card shadow-sm" style="border-radius: 10px;">
+                <div class="card-body" style="padding: 2.5rem 2rem;">
+                    <form method="post" autocomplete="off">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label" style="font-weight: 400;">Título</label>
+                            {{ form.nome }}
+                        </div>
+                        <div class="mb-4">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label" style="font-weight: 400;">Descrição</label>
+                            {{ form.descricao }}
+                        </div>
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <a href="{% url 'visualizarTabelas' %}" class="btn" style="background: #fff966; color: #222; border-radius: 8px; min-width: 120px; font-weight: 500; border: 1px solid #fff966;">Cancelar</a>
+                            <button type="submit" class="btn" style="background: #7cff8c; color: #222; border-radius: 8px; min-width: 120px; font-weight: 500; border: 1px solid #7cff8c;">
+                                Atualizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control {
+        border: 1px solid #222; 
+        border-radius: 8px; 
+        background: #fff; 
+        box-shadow: none;
+    }
+    
+    textarea.form-control {
+        resize: none;
+    }
+</style>
+{% endblock %}
