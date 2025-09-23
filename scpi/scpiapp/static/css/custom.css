@@ -17,6 +17,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     background-color: #EDEDF2;
+    overflow: hidden; /* Previne scrollbar dupla */
 }
 
 
@@ -44,13 +45,48 @@ body {
     overflow-y: auto;
 }
 
+/* Estilo para container de cartões com scrollbar */
+.cards-container {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+.cards-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cards-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.cards-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.cards-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .container {
         padding-left: 15px;
         padding-right: 15px;
     }
+    
+    .cards-container {
+        height: calc(100vh - 150px) !important; /* Ajusta altura em telas menores */
+    }
 }
+
+@media (max-height: 600px) {
+    .cards-container {
+        height: calc(100vh - 100px) !important; /* Ajusta altura em telas de baixa altura */
+    }
+}
+
 /* Sidebar */
 .custom-sidebar {
     background-color: #ffffff !important;

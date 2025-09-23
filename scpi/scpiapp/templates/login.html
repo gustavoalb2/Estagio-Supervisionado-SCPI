@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCPI - Login</title>
+    
+    <!-- Bootstrap CSS via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+    <!-- CSS Customizado -->
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #EDEDF2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        
+        .login-container {
+            background-color: white;
+            border-radius: 0;
+            padding: 40px 60px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .login-header {
+            padding-top: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .form-label {
+            font-weight: normal;
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            border-radius: 5px;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+        }
+        
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(0, 102, 0, 0.25);
+            border-color: #006600;
+        }
+        
+        .btn-login {
+            background-color: #006600;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 16px;
+            width: 120px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .btn-login:hover {
+            background-color: #005000;
+        }
+        
+        .forgot-password {
+            text-align: left;
+            display: block;
+            margin-top: 10px;
+            color: #000;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon input {
+            padding-left: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <svg width="60" height="60" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg" class="login-logo">
+                <path d="M18.5003 34.8876C17.4674 34.8876 16.4191 34.6564 15.602 34.1784L7.12286 29.2914C3.66952 26.9634 3.45369 26.6089 3.45369 22.9551V14.0443C3.45369 10.3905 3.65411 10.0359 7.04577 7.73887L15.5866 2.80553C17.2053 1.86512 19.7491 1.86512 21.3678 2.80553L29.8778 7.70803C33.3311 10.0359 33.547 10.3905 33.547 14.0443V22.9397C33.547 26.5934 33.3466 26.948 29.9549 29.2451L21.4141 34.1784C20.5816 34.6564 19.5332 34.8876 18.5003 34.8876ZM18.5003 4.42428C17.8528 4.42428 17.2207 4.54762 16.7736 4.8097L8.29452 9.7122C5.78161 11.408 5.78161 11.408 5.78161 14.0443V22.9397C5.78161 25.5759 5.78161 25.5759 8.35619 27.318L16.7736 32.1743C17.6832 32.6984 19.3328 32.6984 20.2424 32.1743L28.7216 27.2718C31.2191 25.5759 31.2191 25.5759 31.2191 22.9397V14.0443C31.2191 11.408 31.2191 11.408 28.6445 9.66595L20.227 4.8097C19.7799 4.54762 19.1478 4.42428 18.5003 4.42428Z" fill="black"/>
+                <path d="M18.5 24.2812C15.3088 24.2812 12.7188 21.6912 12.7188 18.5C12.7188 15.3088 15.3088 12.7188 18.5 12.7188C21.6912 12.7188 24.2812 15.3088 24.2812 18.5C24.2812 21.6912 21.6912 24.2812 18.5 24.2812ZM18.5 15.0312C16.5883 15.0312 15.0312 16.5883 15.0312 18.5C15.0312 20.4117 16.5883 21.9688 18.5 21.9688C20.4117 21.9688 21.9688 20.4117 21.9688 18.5C21.9688 16.5883 20.4117 15.0312 18.5 15.0312Z" fill="black"/>
+            </svg>
+            <h1 class="fw-bold fs-4">SCPI</h1>
+        </div>
+        
+        <!-- Exibir mensagens do sistema -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username" class="form-label">User</label>
+                <div class="input-with-icon">
+                    <svg class="input-icon" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                    </svg>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Senha</label>
+                <div class="input-with-icon">
+                    <svg class="input-icon" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                    </svg>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="" required>
+                </div>
+            </div>
+            
+            <a href="#" class="forgot-password">Esqueci a Senha</a>
+            
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-login">Entrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JavaScript via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

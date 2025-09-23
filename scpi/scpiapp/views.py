@@ -1,17 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from .models import Processo, Usuario, TabelaProcessos
 from .forms import ProcessoForm, TabelaForm
-from datetime import datetime, date
-from django.utils import timezone
-
+from datetime import datetime
 from django.db.models import Q
-import csv
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from openpyxl import load_workbook, Workbook
 
+# csv, xlsx
+import csv
+from openpyxl import load_workbook, Workbook
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+
+@login_required(login_url='login')
 def home(request):
     query = request.GET.get('q')
     if query:
@@ -167,6 +170,11 @@ def tabela(request, tabela_id):
     # Contagem de processos por setor
     count_cic = processos.filter(setor='CIC').count()
     count_dpq = processos.filter(setor='DPQ').count()
+    
+    # Contagem total para exibir informação sobre filtragem
+    total_processos = processos.count()
+    total_sem_filtro = Processo.objects.filter(tabela=tabela).count()
+    tem_filtro = query is not None and query != ''
 
     context = {
         'processos': processos,
@@ -175,6 +183,9 @@ def tabela(request, tabela_id):
         'count_dpq': count_dpq,
         'sort_by': sort_by,
         'sort_direction': sort_direction,
+        'total_processos': total_processos,
+        'total_sem_filtro': total_sem_filtro,
+        'tem_filtro': tem_filtro,
     }
     return render(request, 'tabelaProcessos.html', context)
 
@@ -231,35 +242,164 @@ def excluir_tabela(request, tabela_id):
 
 def exportar_xlsx(request, tabela_id):
     tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
-    processos = Processo.objects.filter(tabela=tabela)
+    query = request.GET.get('q')
+    
+    # Parâmetros de ordenação
+    sort_by = request.GET.get('sort', 'nome')  # Ordenação padrão por nome
+    sort_direction = request.GET.get('direction', 'asc')  # Direção padrão ascendente
+    
+    # Filtrar processos de acordo com a busca, se houver
+    if query:
+        processos = Processo.objects.filter(
+            Q(tabela=tabela) & 
+            (Q(nome__icontains=query) | 
+             Q(numero_processo__icontains=query) |
+             Q(assunto__icontains=query))
+        )
+    else:
+        processos = Processo.objects.filter(tabela=tabela)
+    
+    # Aplicar ordenação
+    if sort_by == 'nome':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-nome')
+        else:
+            processos = processos.order_by('nome')
+    elif sort_by == 'data_abertura':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_abertura')
+        else:
+            processos = processos.order_by('data_abertura')
+    elif sort_by == 'data_retorno':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_retorno')
+        else:
+            processos = processos.order_by('data_retorno')
     
     # Criar um novo workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Processos"
     
-    # Adicionar cabeçalhos (na ordem correta conforme o PDF de contexto)
+    # Definir estilos
+    header_font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='006600', end_color='006600', fill_type='solid')
+    
+    # Definir bordas
+    thin_border = Border(
+        left=Side(style='thin', color='000000'),
+        right=Side(style='thin', color='000000'),
+        top=Side(style='thin', color='000000'),
+        bottom=Side(style='thin', color='000000')
+    )
+    
+    # Alinhamento
+    center_aligned = Alignment(horizontal='center', vertical='center')
+    wrapped_alignment = Alignment(wrap_text=True, vertical='top')
+    
+    # Definir estilo zebra para linhas alternadas
+    light_green_fill = PatternFill(start_color='E6FFE6', end_color='E6FFE6', fill_type='solid')
+    
+    # Adicionar título principal
+    ws.merge_cells('A1:J1')  # Mesclar células para o título
+    titulo_cell = ws['A1']
+    
+    # Adicionar informações sobre filtro e ordenação no título
+    sort_by_info = ""
+    if sort_by:
+        # Mapeamento de campos para exibição amigável
+        campo_exibicao = {
+            'nome': 'Nome',
+            'data_abertura': 'Data de Abertura',
+            'data_retorno': 'Data de Retorno'
+        }
+        
+        # Mapeamento de direção para exibição amigável
+        direcao_exibicao = {
+            'asc': 'crescente',
+            'desc': 'decrescente'
+        }
+        
+        sort_by_info = f" - Ordenado por {campo_exibicao.get(sort_by, sort_by)} ({direcao_exibicao.get(sort_direction, sort_direction)})"
+    
+    if query:
+        titulo_cell.value = f"SCPI - Processos filtrados da Tabela: {tabela.nome} (Filtro: {query}){sort_by_info}"
+    else:
+        titulo_cell.value = f"SCPI - Processos da Tabela: {tabela.nome}{sort_by_info}"
+    
+    titulo_cell.font = Font(name='Arial', size=14, bold=True)
+    titulo_cell.alignment = center_aligned
+    titulo_cell.fill = PatternFill(start_color='DDDDDD', end_color='DDDDDD', fill_type='solid')
+    
+    # Adicionar cabeçalhos na linha 2
     headers = ['Nome', 'Matrícula', 'Nº Processo', 'Data de Abertura', 'Data de Retorno', 'Setor', 'Bolsa', 'Status', 'Assunto', 'Observações']
     for col_num, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col_num, value=header)
+        cell = ws.cell(row=2, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+        cell.alignment = center_aligned
     
-    # Adicionar dados (na ordem correta)
-    for row_num, processo in enumerate(processos, 2):
-        ws.cell(row=row_num, column=1, value=processo.nome)
-        ws.cell(row=row_num, column=2, value=processo.matricula)
-        ws.cell(row=row_num, column=3, value=processo.numero_processo)
-        ws.cell(row=row_num, column=4, value=processo.data_abertura)
-        ws.cell(row=row_num, column=5, value=processo.data_retorno)
-        ws.cell(row=row_num, column=6, value=processo.get_setor_display() if processo.setor else "")
-        ws.cell(row=row_num, column=7, value=processo.get_bolsa_display() if processo.bolsa else "")
-        ws.cell(row=row_num, column=8, value=processo.get_status_display() if processo.status else "")
-        ws.cell(row=row_num, column=9, value=processo.assunto)
-        ws.cell(row=row_num, column=10, value=processo.observacoes)
+    # Adicionar dados
+    for row_num, processo in enumerate(processos, 3):  # Começar da linha 3 (após título e cabeçalho)
+        # Aplicar cor de fundo alternada
+        row_fill = light_green_fill if row_num % 2 == 0 else None
+        
+        # Formatar data para exibição
+        data_abertura = processo.data_abertura.strftime('%d/%m/%Y') if processo.data_abertura else ""
+        data_retorno = processo.data_retorno.strftime('%d/%m/%Y') if processo.data_retorno else ""
+        
+        # Preencher células com valores e aplicar formatação
+        cells = [
+            (1, processo.nome),
+            (2, processo.matricula),
+            (3, processo.numero_processo),
+            (4, data_abertura),
+            (5, data_retorno),
+            (6, processo.get_setor_display() if processo.setor else ""),
+            (7, processo.get_bolsa_display() if processo.bolsa else ""),
+            (8, processo.get_status_display() if processo.status else ""),
+            (9, processo.assunto),
+            (10, processo.observacoes)
+        ]
+        
+        for col_num, value in cells:
+            cell = ws.cell(row=row_num, column=col_num, value=value)
+            cell.border = thin_border
+            
+            # Aplicar alinhamento e quebra de texto para campos longos
+            if col_num in [9, 10]:  # Assunto e Observações
+                cell.alignment = wrapped_alignment
+            else:
+                cell.alignment = Alignment(vertical='center')
+                
+            # Aplicar cor de fundo alternada
+            if row_fill:
+                cell.fill = row_fill
     
     # Ajustar largura das colunas
-    for col_num in range(1, len(headers) + 1):
-        col_letter = chr(64 + col_num)  # A, B, C, ...
-        ws.column_dimensions[col_letter].width = 20
+    column_widths = {
+        'A': 25,  # Nome
+        'B': 15,  # Matrícula
+        'C': 20,  # Nº Processo
+        'D': 15,  # Data de Abertura
+        'E': 15,  # Data de Retorno
+        'F': 15,  # Setor
+        'G': 10,  # Bolsa
+        'H': 15,  # Status
+        'I': 30,  # Assunto
+        'J': 30,  # Observações
+    }
+    
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = width
+    
+    # Ajustar altura das linhas
+    for row_num in range(3, len(processos) + 3):
+        ws.row_dimensions[row_num].height = 30  # Altura fixa para todas as linhas de dados
+    
+    # Congelar painel para manter cabeçalhos visíveis ao rolar
+    ws.freeze_panes = 'A3'
     
     # Criar a resposta HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -271,54 +411,155 @@ def exportar_xlsx(request, tabela_id):
     return response
 
 def exportar_processos_xlsx(request, tabela_id):
-    return exportar_xlsx(request, tabela_id)
+    response = exportar_xlsx(request, tabela_id)
+    
+    # Adicionar mensagem de confirmação com contagem
+    tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
+    query = request.GET.get('q')
+    sort_by = request.GET.get('sort', 'nome')
+    sort_direction = request.GET.get('direction', 'asc')
+    
+    # Mapeamento de campos para exibição amigável
+    campo_exibicao = {
+        'nome': 'Nome',
+        'data_abertura': 'Data de Abertura',
+        'data_retorno': 'Data de Retorno'
+    }
+    
+    # Mapeamento de direção para exibição amigável
+    direcao_exibicao = {
+        'asc': 'crescente',
+        'desc': 'decrescente'
+    }
+    
+    # Construir mensagem de sucesso
+    ordenacao_info = f" (ordenados por {campo_exibicao.get(sort_by, sort_by)} em ordem {direcao_exibicao.get(sort_direction, sort_direction)})"
+    
+    if query:
+        processos = Processo.objects.filter(
+            Q(tabela=tabela) & 
+            (Q(nome__icontains=query) | 
+             Q(numero_processo__icontains=query) |
+             Q(assunto__icontains=query))
+        ).count()
+        messages.success(request, f"{processos} processos filtrados foram exportados para Excel{ordenacao_info}.")
+    else:
+        processos = Processo.objects.filter(tabela=tabela).count()
+        messages.success(request, f"Todos os {processos} processos foram exportados para Excel{ordenacao_info}.")
+    
+    return response
 
 def exportar_processos_csv(request, tabela_id):
     tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
-    processos = Processo.objects.filter(tabela=tabela)
+    query = request.GET.get('q')
+    
+    # Parâmetros de ordenação
+    sort_by = request.GET.get('sort', 'nome')  # Ordenação padrão por nome
+    sort_direction = request.GET.get('direction', 'asc')  # Direção padrão ascendente
+    
+    # Filtrar processos de acordo com a busca, se houver
+    # Mapeamento de campos para exibição amigável
+    campo_exibicao = {
+        'nome': 'Nome',
+        'data_abertura': 'Data de Abertura',
+        'data_retorno': 'Data de Retorno'
+    }
+    
+    # Mapeamento de direção para exibição amigável
+    direcao_exibicao = {
+        'asc': 'crescente',
+        'desc': 'decrescente'
+    }
+    
+    # Construir mensagem de sucesso
+    ordenacao_info = f" (ordenados por {campo_exibicao.get(sort_by, sort_by)} em ordem {direcao_exibicao.get(sort_direction, sort_direction)})"
+    
+    if query:
+        processos = Processo.objects.filter(
+            Q(tabela=tabela) & 
+            (Q(nome__icontains=query) | 
+             Q(numero_processo__icontains=query) |
+             Q(assunto__icontains=query))
+        )
+        processos_count = processos.count()
+        messages.success(request, f"{processos_count} processos filtrados foram exportados para CSV{ordenacao_info}.")
+    else:
+        processos = Processo.objects.filter(tabela=tabela)
+        processos_count = processos.count()
+        messages.success(request, f"Todos os {processos_count} processos foram exportados para CSV{ordenacao_info}.")
+    
+    # Aplicar ordenação
+    if sort_by == 'nome':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-nome')
+        else:
+            processos = processos.order_by('nome')
+    elif sort_by == 'data_abertura':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_abertura')
+        else:
+            processos = processos.order_by('data_abertura')
+    elif sort_by == 'data_retorno':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-data_retorno')
+        else:
+            processos = processos.order_by('data_retorno')
     
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="processos_{tabela.nome}.csv"'
     
-    writer = csv.writer(response)
+    # Usar ponto-e-vírgula como delimitador para melhor compatibilidade com Excel brasileiro
+    writer = csv.writer(response, delimiter=';', quoting=csv.QUOTE_ALL)
+    
+    # Adicionar BOM (Byte Order Mark) para garantir que o Excel interprete corretamente caracteres especiais
+    response.write(u'\ufeff'.encode('utf-8'))
+    
+    # Adicionar linha com o nome da tabela
+    # Mapeamento de campos para exibição amigável
+    campo_exibicao = {
+        'nome': 'Nome',
+        'data_abertura': 'Data de Abertura',
+        'data_retorno': 'Data de Retorno'
+    }
+    
+    # Mapeamento de direção para exibição amigável
+    direcao_exibicao = {
+        'asc': 'crescente',
+        'desc': 'decrescente'
+    }
+    
+    sort_by_info = ""
+    if sort_by:
+        sort_by_info = f" - Ordenado por {campo_exibicao.get(sort_by, sort_by)} ({direcao_exibicao.get(sort_direction, sort_direction)})"
+    
+    if query:
+        writer.writerow([f'SCPI - Processos filtrados da Tabela: {tabela.nome} (Filtro: {query}){sort_by_info}'])
+    else:
+        writer.writerow([f'SCPI - Processos da Tabela: {tabela.nome}{sort_by_info}'])
+    writer.writerow([]) # Linha vazia
+    
+    # Adicionar cabeçalhos
     writer.writerow(['Nome', 'Matrícula', 'Nº Processo', 'Data de Abertura', 'Data de Retorno', 'Setor', 'Bolsa', 'Status', 'Assunto', 'Observações'])
     
+    # Adicionar dados
     for processo in processos:
-        writer.writerow([
-            processo.nome,
-            processo.matricula,
-            processo.numero_processo,
-            processo.data_abertura,
-            processo.data_retorno,
-            processo.get_setor_display(),
-            processo.get_bolsa_display(),
-            processo.get_status_display(),
-            processo.assunto,
-            processo.observacoes
-        ])
+        # Formatar as datas para exibição no formato DD/MM/AAAA
+        data_abertura = processo.data_abertura.strftime('%d/%m/%Y') if processo.data_abertura else ""
+        data_retorno = processo.data_retorno.strftime('%d/%m/%Y') if processo.data_retorno else ""
         
-    return response
-
-def exportar_processos_pdf(request, tabela_id):
-    tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
-    processos = Processo.objects.filter(tabela=tabela)
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="processos_{tabela.nome}.pdf"'
-
-    p = canvas.Canvas(response, pagesize=letter)
-    p.drawString(100, 750, f"Processos da Tabela: {tabela.nome}")
-
-    y = 700
-    for processo in processos:
-        p.drawString(100, y, f"Nome: {processo.nome}, Processo: {processo.numero_processo}, Status: {processo.get_status_display()}")
-        y -= 20
-        if y < 100:
-            p.showPage()
-            y = 750
-
-    p.showPage()
-    p.save()
+        writer.writerow([
+            processo.nome or "",
+            processo.matricula or "",
+            processo.numero_processo or "",
+            data_abertura,
+            data_retorno,
+            processo.get_setor_display() if processo.setor else "",
+            processo.get_bolsa_display() if processo.bolsa else "",
+            processo.get_status_display() if processo.status else "",
+            processo.assunto or "",
+            processo.observacoes or ""
+        ])
+    
     return response
 
 def importar_processos(request, tabela_id):
@@ -512,3 +753,65 @@ def importar_processos(request, tabela_id):
             messages.error(request, f"Erro ao importar o arquivo: {e}")
 
     return redirect('tabela_processos', tabela_id=tabela_id)
+
+
+def login_view(request):
+    """
+    Renderiza a página de login e processa o formulário de login.
+    """
+    # Se o usuário já estiver logado, redireciona para a página inicial
+    if request.user.is_authenticated:
+        return redirect('visualizarTabelas')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        # Autenticar usuário
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Fazer login do usuário
+            login(request, user)
+            
+            # Redirecionar para a página que o usuário estava tentando acessar,
+            # ou para a página inicial se não houver next
+            next_page = request.GET.get('next', 'visualizarTabelas')
+            messages.success(request, f"Bem-vindo(a), {user.username}!")
+            return redirect(next_page)
+        else:
+            # Mensagem de erro se as credenciais estiverem incorretas
+            messages.error(request, "Usuário ou senha incorretos. Por favor, tente novamente.")
+    
+    return render(request, 'login.html')
+
+
+def logout_view(request):
+    """
+    Efetua logout do usuário e redireciona para a página de login.
+    """
+    logout(request)
+    messages.success(request, "Logout efetuado com sucesso!")
+    return redirect('login')
+
+
+def recuperar_senha(request):
+    """
+    Renderiza a página de recuperação de senha.
+    """
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        
+        # Verificar se o e-mail existe
+        user_exists = User.objects.filter(email=email).exists() or Usuario.objects.filter(email=email).exists()
+        
+        if user_exists:
+            # Aqui você implementaria o envio de e-mail com instruções para recuperação de senha
+            # Por enquanto, apenas mostramos uma mensagem de sucesso
+            messages.success(request, f"As instruções para redefinir sua senha foram enviadas para {email}.")
+            return redirect('login')
+        else:
+            messages.error(request, "Não encontramos uma conta associada a este e-mail.")
+    
+    # Esta é uma visualização básica. Em um sistema real, você teria um template específico.
+    return render(request, 'login.html')

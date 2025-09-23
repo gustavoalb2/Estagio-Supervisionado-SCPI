@@ -13,9 +13,15 @@
                 <input class="form-control form-control-sm" type="search" name="q" placeholder="Procurar Processo" aria-label="Procurar" value="{{ request.GET.q }}">
                 <button class="btn btn-sm btn-primary ms-1" type="submit">Procurar</button>
             </form>
-            <a href="{% url 'exportar_processos_xlsx' tabela.id %}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-upload"></i> Exportar Excel
-            </a>
+            <div class="dropdown d-inline-block">
+                <button class="btn {% if request.GET.q %}btn-info{% else %}btn-outline-secondary{% endif %} btn-sm dropdown-toggle" type="button" id="exportarDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-upload"></i> {% if request.GET.q %}Exportar Filtrados{% else %}Exportar{% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportarDropdown">
+                    <li><a class="dropdown-item" href="{% url 'exportar_processos_xlsx' tabela.id %}{% if request.GET.q or sort_by %}?{% if request.GET.q %}q={{ request.GET.q }}{% endif %}{% if sort_by %}{% if request.GET.q %}&{% endif %}sort={{ sort_by }}&direction={{ sort_direction }}{% endif %}{% endif %}">Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'exportar_processos_csv' tabela.id %}{% if request.GET.q or sort_by %}?{% if request.GET.q %}q={{ request.GET.q }}{% endif %}{% if sort_by %}{% if request.GET.q %}&{% endif %}sort={{ sort_by }}&direction={{ sort_direction }}{% endif %}{% endif %}">CSV (.csv)</a></li>
+                </ul>
+            </div>
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importarModal">
                 <i class="bi bi-download"></i> Importar
             </button>
@@ -238,6 +244,12 @@
     <div class="card mt-4">
         <div class="card-body">
             <h5 class="card-title">Informações adicionais</h5>
+            {% if tem_filtro %}
+                <div class="alert alert-info mb-3">
+                    <strong>Filtro ativo:</strong> Mostrando {{ total_processos }} de {{ total_sem_filtro }} processos
+                    <a href="{% url 'tabela_processos' tabela.id %}{% if sort_by %}?sort={{ sort_by }}&direction={{ sort_direction }}{% endif %}" class="btn btn-sm btn-outline-dark ms-2">Limpar filtro</a>
+                </div>
+            {% endif %}
             <p class="card-text">Processos CIC: {{ count_cic }} processos listados</p>
             <p class="card-text">Processos DPQ: {{ count_dpq }} processos listados</p>
         </div>
