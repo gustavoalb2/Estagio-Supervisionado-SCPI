@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid" style="background-color: #b6c3ccff;">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <!-- Mensagens de feedback -->
@@ -210,6 +210,24 @@ textarea.form-control {
     cursor: pointer;
 }
 
+/* Estilo para campos preenchidos automaticamente */
+.auto-filled {
+    background-color: #f8f9fa !important;
+    border-color: #28a745 !important;
+    position: relative;
+}
+
+.auto-filled::after {
+    content: '✓';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #28a745;
+    font-weight: bold;
+    pointer-events: none;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .card-body {
@@ -236,28 +254,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingSpinner = document.getElementById('loadingSpinner');
     const btnText = document.getElementById('btnText');
     
-    // Auto-gerar número do processo baseado na data e hora
-    const numeroProcessoInput = document.getElementById('numero_processo');
-    if (!numeroProcessoInput.value) {
-        const now = new Date();
-        const ano = now.getFullYear();
-        const mes = String(now.getMonth() + 1).padStart(2, '0');
-        const dia = String(now.getDate()).padStart(2, '0');
-        const hora = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        numeroProcessoInput.value = `PROC-${ano}${mes}${dia}${hora}${min}`;
-    }
-    
-    // Definir data de abertura como hoje por padrão
-    const dataAberturaInput = document.getElementById('data_abertura');
+    // Definir data de abertura como hoje se estiver vazia (novo processo)
+    const dataAberturaInput = document.getElementById('id_data_abertura');
     if (!dataAberturaInput.value) {
-        const hoje = new Date();
-        const dataFormatada = hoje.toISOString().split('T')[0];
-        dataAberturaInput.value = dataFormatada;
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        dataAberturaInput.value = formattedDate;
+        dataAberturaInput.classList.add('auto-filled');
+        dataAberturaInput.addEventListener('input', function() {
+            this.classList.remove('auto-filled');
+        });
+        
+        dataAberturaInput.addEventListener('change', function() {
+            this.classList.remove('auto-filled');
+        });
     }
     
     // Validação de data de retorno
-    const dataRetornoInput = document.getElementById('data_retorno');
+    const dataRetornoInput = document.getElementById('id_data_retorno');
     dataAberturaInput.addEventListener('change', function() {
         dataRetornoInput.min = this.value;
         if (dataRetornoInput.value && dataRetornoInput.value < this.value) {
@@ -291,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Auto-capitalizar nome
-    const nomeInput = document.getElementById('nome');
+    const nomeInput = document.getElementById('id_nome');
     nomeInput.addEventListener('input', function() {
         const words = this.value.split(' ');
         const capitalized = words.map(word => {
@@ -304,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Formatar matrícula
-    const matriculaInput = document.getElementById('matricula');
+    const matriculaInput = document.getElementById('id_matricula');
     matriculaInput.addEventListener('input', function() {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });

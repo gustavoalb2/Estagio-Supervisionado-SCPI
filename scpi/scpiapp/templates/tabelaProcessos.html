@@ -2,7 +2,7 @@
 {% load tz %}
 
 {% block content %}
-<div class="container-fluid tabela">
+<div class="container-fluid tabela" style="background: #b6c3ccff;">
     <!-- Cabeçalho da tabela -->
     <div class="d-flex justify-content-between align-items-center mb-4 header-tabela">
         <div> 
@@ -15,7 +15,7 @@
                 <button class="btn btn-sm btn-primary ms-1" type="submit">Procurar</button>
             </form>
             <div class="dropdown d-inline-block">
-                <button class="btn {% if request.GET.q %}btn-info{% else %}btn-outline-secondary{% endif %} btn-sm dropdown-toggle" type="button" id="exportarDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn {% if request.GET.q %}btn-info{% else %}btn-outline-dark{% endif %} btn-sm dropdown-toggle" type="button" id="exportarDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-upload"></i> {% if request.GET.q %}Exportar Filtrados{% else %}Exportar{% endif %}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportarDropdown">
@@ -23,7 +23,7 @@
                     <li><a class="dropdown-item" href="{% url 'exportar_processos_csv' tabela.id %}{% if request.GET.q or sort_by %}?{% if request.GET.q %}q={{ request.GET.q }}{% endif %}{% if sort_by %}{% if request.GET.q %}&{% endif %}sort={{ sort_by }}&direction={{ sort_direction }}{% endif %}{% endif %}">CSV (.csv)</a></li>
                 </ul>
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importarModal">
+            <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#importarModal">
                 <i class="bi bi-download"></i> Importar
             </button>
             <a href="{% url 'adicionar_processo_tabela' tabela.id %}" class="btn btn-primary btn-sm">

@@ -207,7 +207,9 @@ def adicionarProcesso(request, tabela_id=None):
         else:
             messages.error(request, 'Erro ao adicionar o processo. Verifique os dados informados.')
     else:
-        form = ProcessoForm()
+        from datetime import date
+        initial_data = {'data_abertura': date.today()}
+        form = ProcessoForm(initial=initial_data)
 
     context = {
         'form': form,
