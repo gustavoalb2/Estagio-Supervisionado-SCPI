@@ -18,12 +18,12 @@ urlpatterns = [
     path('processo/editar/<int:processo_id>/', views.editarProcesso, name='editar_processo'),
     path('processo/deletar/<int:processo_id>/', views.deletaProcesso, name='deletar_processo'),
     path('usuario/', views.usuarios, name='usuarios'),
+    path('usuario/alterar-senha-propeg/', views.alterar_senha_propeg, name='alterar_senha_propeg'),
     path('tabela/editar/<int:tabela_id>/', views.editar_tabela, name='editar_tabela'),
     path('tabela/excluir/<int:tabela_id>/', views.excluir_tabela, name='excluir_tabela'),
     path('tabela/<int:tabela_id>/exportar/xlsx/', views.exportar_xlsx, name='exportar_processos_xlsx'),
     path('tabela/<int:tabela_id>/exportar/csv/', views.exportar_processos_csv, name='exportar_processos_csv'),
     path('tabela/<int:tabela_id>/importar/', views.importar_processos, name='importar_processos'),
     path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
-    path('recuperar-senha/', views.recuperar_senha, name='recuperar_senha'),
+    path('logout/', views.logout_view, name='logout')
 ]

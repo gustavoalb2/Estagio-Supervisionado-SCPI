@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alterar Senha - PROPEG{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Alterar Senha do PROPEG</h1>
+    </div>
+
+    <!-- Exibir mensagens do sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Nova Senha</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nova_senha.id_for_label }}" class="form-label">{{ form.nova_senha.label }}</label>
+                            {{ form.nova_senha }}
+                            {% if form.nova_senha.help_text %}
+                                <div class="form-text">{{ form.nova_senha.help_text }}</div>
+                            {% endif %}
+                            {% if form.nova_senha.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.nova_senha.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.confirmar_senha.id_for_label }}" class="form-label">{{ form.confirmar_senha.label }}</label>
+                            {{ form.confirmar_senha }}
+                            {% if form.confirmar_senha.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.confirmar_senha.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Erros gerais do formulário -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'usuarios' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                            <button type="submit" class="btn btn-success">Alterar Senha</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Informações</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Usuário:</strong> propeg</p>
+                    <p><strong>Função:</strong> Administrador do Sistema</p>
+                    <hr>
+                    <h6>Requisitos da Senha:</h6>
+                    <ul>
+                        <li>Mínimo de 8 caracteres</li>
+                        <li>Recomendado usar letras, números e símbolos</li>
+                        <li>Evitar senhas muito simples</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

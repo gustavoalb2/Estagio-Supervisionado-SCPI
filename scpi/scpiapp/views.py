@@ -2,10 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from .models import Processo, Usuario, TabelaProcessos
-from .forms import ProcessoForm, TabelaForm
+from .forms import ProcessoForm, TabelaForm, AlterarSenhaPropegForm
 from datetime import datetime
 from django.db.models import Q
 
@@ -16,6 +16,9 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 
 @login_required(login_url='login')
 def home(request):
+    print(f"DEBUG - Usuário autenticado: {request.user.is_authenticated}")
+    print(f"DEBUG - Usuário: {request.user}")
+    
     query = request.GET.get('q')
     if query:
         tabelas = TabelaProcessos.objects.filter(nome__icontains=query)
@@ -37,9 +40,6 @@ def adicionarTabela(request):
             nome_tabela = request.POST.get('titulo')
             descricao_tabela = request.POST.get('descricao')
             
-            # Supondo que o usuário esteja logado. 
-            # Em um cenário real, você teria um sistema de autenticação.
-            # Por enquanto, vamos pegar o primeiro usuário ou criar um se não existir.
             usuario, created = Usuario.objects.get_or_create(
                 id=1, 
                 defaults={'nome': 'Usuário Padrão', 'email': 'padrao@example.com'}
@@ -189,19 +189,43 @@ def tabela(request, tabela_id):
     }
     return render(request, 'tabelaProcessos.html', context)
 
+@login_required(login_url='login')
 def usuarios(request):
-    # Exemplo: pegar o usuário logado (em produção)
-    usuario = request.user if request.user.is_authenticated else None
-    # Se não estiver autenticado, pode exibir um usuário de exemplo
-    if not usuario or not hasattr(usuario, 'email'):
-        usuario = Usuario(
-            nome='Admin Sistema',
-            email='admin@example.com',
-            senha_hash='dummy',
-            tipo=Usuario.TiposUsuario.ADMIN
-        )
+    # Buscar informações do usuário propeg no sistema
+    try:
+        # Verificar se o usuário propeg existe no sistema Django Auth
+        propeg_user = User.objects.get(username='propeg')
+        
+        # Buscar informações reais do banco de dados
+        nome_completo = propeg_user.get_full_name()
+        if not nome_completo or nome_completo.strip() == '':
+            # Se não tiver nome completo, usar first_name ou username como fallback
+            nome_completo = propeg_user.first_name or propeg_user.username.upper()
+            
+        email_usuario = propeg_user.email or 'propeg@ufac.br'
+        
+        usuario_info = {
+            'nome': nome_completo,
+            'email': email_usuario,
+            'username': propeg_user.username,
+            'data_criacao': propeg_user.date_joined,
+            'ultimo_login': propeg_user.last_login,
+            'is_active': propeg_user.is_active
+        }
+    except User.DoesNotExist:
+        # Se não existir, usar informações padrão
+        usuario_info = {
+            'nome': 'PROPEG',
+            'email': 'propeg@ufac.br',
+            'username': 'propeg',
+            'data_criacao': None,
+            'ultimo_login': None,
+            'is_active': False
+        }
+    
     context = {
-        'usuario': usuario
+        'usuario_info': usuario_info,
+        'is_admin': request.user.is_superuser  # Usado para verificar se o usuário atual é admin
     }
     return render(request, 'usuario.html', context)
 
@@ -756,10 +780,9 @@ def importar_processos(request, tabela_id):
 
 
 def login_view(request):
-    """
-    Renderiza a página de login e processa o formulário de login.
-    """
-    # Se o usuário já estiver logado, redireciona para a página inicial
+    print(f"DEBUG - Login view - Usuário autenticado: {request.user.is_authenticated}")
+    print(f"DEBUG - Login view - Usuário: {request.user}")
+    
     if request.user.is_authenticated:
         return redirect('visualizarTabelas')
     
@@ -767,51 +790,45 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        # Autenticar usuário
+        print(f"DEBUG - Tentativa de login: {username}")
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # Fazer login do usuário
             login(request, user)
-            
-            # Redirecionar para a página que o usuário estava tentando acessar,
-            # ou para a página inicial se não houver next
             next_page = request.GET.get('next', 'visualizarTabelas')
             messages.success(request, f"Bem-vindo(a), {user.username}!")
             return redirect(next_page)
         else:
-            # Mensagem de erro se as credenciais estiverem incorretas
             messages.error(request, "Usuário ou senha incorretos. Por favor, tente novamente.")
     
     return render(request, 'login.html')
 
 
 def logout_view(request):
-    """
-    Efetua logout do usuário e redireciona para a página de login.
-    """
     logout(request)
     messages.success(request, "Logout efetuado com sucesso!")
     return redirect('login')
 
 
-def recuperar_senha(request):
-    """
-    Renderiza a página de recuperação de senha.
-    """
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_superuser, login_url='visualizarTabelas')
+def alterar_senha_propeg(request):
+    try:
+        propeg_user = User.objects.get(username='propeg')
+    except User.DoesNotExist:
+        messages.error(request, "Usuário PROPEG não encontrado no sistema.")
+        return redirect('usuarios')
+
     if request.method == 'POST':
-        email = request.POST.get('email')
-        
-        # Verificar se o e-mail existe
-        user_exists = User.objects.filter(email=email).exists() or Usuario.objects.filter(email=email).exists()
-        
-        if user_exists:
-            # Aqui você implementaria o envio de e-mail com instruções para recuperação de senha
-            # Por enquanto, apenas mostramos uma mensagem de sucesso
-            messages.success(request, f"As instruções para redefinir sua senha foram enviadas para {email}.")
-            return redirect('login')
-        else:
-            messages.error(request, "Não encontramos uma conta associada a este e-mail.")
+        form = AlterarSenhaPropegForm(request.POST)
+        if form.is_valid():
+            nova_senha = form.cleaned_data['nova_senha']
+            propeg_user.set_password(nova_senha)
+            propeg_user.save()
+            
+            messages.success(request, "Senha do usuário PROPEG alterada com sucesso!")
+            return redirect('usuarios')
+    else:
+        form = AlterarSenhaPropegForm()
     
-    # Esta é uma visualização básica. Em um sistema real, você teria um template específico.
-    return render(request, 'login.html')
+    return render(request, 'alterar_senha_propeg.html', {'form': form})

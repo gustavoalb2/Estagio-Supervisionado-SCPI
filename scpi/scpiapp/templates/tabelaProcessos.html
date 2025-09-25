@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tz %}
 
 {% block content %}
 <div class="container-fluid tabela">
@@ -224,7 +225,9 @@
                         <div class="card-footer bg-light">
                             <small class="text-muted">
                                 {% if processo.data_criacao %}
-                                    Última atualização: {{ processo.data_criacao|date:"d/m/Y H:i" }}
+                                    {% timezone "America/Rio_Branco" %}
+                                        Última atualização: {{ processo.data_criacao|date:"d/m/Y H:i" }}
+                                    {% endtimezone %}
                                 {% else %}
                                     Sem informação de data de atualização
                                 {% endif %}
