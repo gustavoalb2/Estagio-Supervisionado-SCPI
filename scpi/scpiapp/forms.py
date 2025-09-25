@@ -32,13 +32,13 @@ class ProcessoForm(forms.ModelForm):
                 'type': 'date'
             }),
             'setor': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-select'
             }),
             'bolsa': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-select'
             }),
             'status': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-select'
             }),
             'assunto': forms.Textarea(attrs={
                 'class': 'form-control',

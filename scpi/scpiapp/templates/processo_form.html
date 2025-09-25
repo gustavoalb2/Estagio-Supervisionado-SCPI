@@ -16,7 +16,7 @@
             
             <div class="card shadow-sm">
                 <div class="card-header bg-white border-bottom">
-''                    <h4 class="card-title mb-0 text-dark">{% if processo %}Editar Processo{% else %}Adicionar Processo{% endif %}</h4>
+                    <h4 class="card-title mb-0 text-dark">{% if processo %}Editar Processo{% else %}Adicionar Processo{% endif %}</h4>
                 </div>
                 
                 <div class="card-body p-4">
@@ -41,28 +41,35 @@
                                 <label for="data_abertura" class="form-label">Data de abertura</label>
                                 <div class="input-group">
                                     {{ form.data_abertura }}
-                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label for="data_retorno" class="form-label">Data de retorno</label>
                                 <div class="input-group">
                                     {{ form.data_retorno }}
-                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                                 </div>
                             </div>
 
                             <div class="col-md-2">
                                 <label for="bolsa" class="form-label">Bolsa?</label>
-                                {{ form.bolsa }}
+                                <div class="select-wrapper">
+                                    {{ form.bolsa }}
+                                    <div class="select-arrow"></div>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <label for="status" class="form-label">Status</label>
-                                {{ form.status }}
+                                <div class="select-wrapper">
+                                    {{ form.status }}
+                                    <div class="select-arrow"></div>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <label for="setor" class="form-label">Setor</label>
-                                {{ form.setor }}
+                                <div class="select-wrapper">
+                                    {{ form.setor }}
+                                    <div class="select-arrow"></div>
+                                </div>
                             </div>
                             
                             <div class="col-md-6">
@@ -173,6 +180,34 @@ textarea.form-control {
 .alert {
     border-radius: 8px;
     margin-bottom: 1.5rem;
+}
+
+/* Estilização para os campos select */
+.select-wrapper {
+    position: relative;
+    display: block;
+}
+
+.select-wrapper .select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #6c757d;
+    pointer-events: none;
+}
+
+.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 30px !important;
+    background-image: none !important;
+    cursor: pointer;
 }
 
 /* Responsividade */
