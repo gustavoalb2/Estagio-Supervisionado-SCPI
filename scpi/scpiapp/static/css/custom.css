@@ -79,12 +79,58 @@ body {
     .cards-container {
         height: calc(100vh - 150px) !important; /* Ajusta altura em telas menores */
     }
+    
+    /* Ajustar espaçamento dos botões em telas pequenas */
+    .custom-sidebar .nav-link {
+        margin: 0.2rem 0;
+        padding: 0.7rem 1rem;
+        border-radius: 0.5rem;
+    }
+    
+    .custom-sidebar .dropdown > a {
+        padding: 0.7rem 1rem;
+        border-radius: 0.5rem;
+    }
 }
 
 @media (max-height: 600px) {
     .cards-container {
         height: calc(100vh - 100px) !important; /* Ajusta altura em telas de baixa altura */
     }
+    
+    /* Reduzir espaçamento vertical em telas de altura baixa */
+    .custom-sidebar .nav-link {
+        margin: 0.15rem 0;
+        padding: 0.6rem 1rem;
+    }
+    
+    .nav {
+        margin-top: 2em !important;
+    }
+}
+
+/* Animação de entrada para os botões */
+@keyframes slideInFromLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.custom-sidebar .nav-link {
+    animation: slideInFromLeft 0.5s ease-out;
+}
+
+.custom-sidebar .nav-link:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.custom-sidebar .nav-link:nth-child(3) {
+    animation-delay: 0.2s;
 }
 
 /* Sidebar */
@@ -97,6 +143,82 @@ body {
 /*itens do sidebar*/
 .nav {
     margin-top: 3em;
+}
+
+/* Estilos para os botões do menu lateral */
+.custom-sidebar .nav-link {
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    margin: 0.35rem 0;
+    padding: 0.85rem 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: transparent;
+    color: #495057;
+    position: relative;
+    overflow: hidden;
+}
+
+.custom-sidebar .nav-link:hover {
+    border-color: #6c757d;
+    background-color: #f8f9fa;
+    color: #212529;
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-sidebar .nav-link.active {
+    border-color: #0d6efd;
+    background: linear-gradient(135deg, #e7f1ff 0%, #cce7ff 100%);
+    color: #0d6efd;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+}
+
+.custom-sidebar .nav-link.active:hover {
+    border-color: #0a58ca;
+    background: linear-gradient(135deg, #cce7ff 0%, #b3d9ff 100%);
+    color: #0a58ca;
+    transform: translateX(3px);
+    box-shadow: 0 6px 16px rgba(13, 110, 253, 0.25);
+}
+
+/* Efeito de pulso para links ativos */
+.custom-sidebar .nav-link.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(13, 110, 253, 0.05);
+    border-radius: 0.75rem;
+    z-index: -1;
+}
+
+/* Estilo especial para o dropdown do usuário */
+.custom-sidebar .dropdown > a {
+    border: 2px solid #dee2e6;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.custom-sidebar .dropdown > a:hover {
+    border-color: #adb5bd;
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    transform: translateX(3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Efeito suave nos ícones SVG */
+.custom-sidebar .nav-link svg {
+    transition: transform 0.3s ease;
+}
+
+.custom-sidebar .nav-link:hover svg {
+    transform: scale(1.1);
 }
 
 .tabela {

@@ -4,15 +4,58 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from .models import Processo, Usuario, TabelaProcessos
+from .models import Processo, Usuario, TabelaProcessos, Auditoria
 from .forms import ProcessoForm, TabelaForm, AlterarSenhaPropegForm
 from datetime import datetime
 from django.db.models import Q
+import json
 
 # csv, xlsx
 import csv
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+
+# Funções auxiliares para auditoria
+def registrar_auditoria(usuario, acao, processo=None, tabela=None, detalhes=None):
+    try:
+        Auditoria.objects.create(
+            usuario=usuario,
+            acao=acao,
+            processo=processo,
+            tabela=tabela,
+            detalhes=detalhes
+        )
+    except Exception as e:
+        print(f"Erro ao registrar auditoria: {e}")
+
+def gerar_detalhes_processo(processo, acao):
+    detalhes = {
+        'acao': acao,
+        'processo_info': {
+            'id': processo.id,
+            'nome': processo.nome,
+            'matricula': processo.matricula,
+            'numero_processo': processo.numero_processo,
+            'setor': processo.setor,
+            'bolsa': processo.bolsa,
+            'status': processo.status,
+            'tabela_id': processo.tabela.id if processo.tabela else None,
+            'tabela_nome': processo.tabela.nome if processo.tabela else None
+        }
+    }
+    return json.dumps(detalhes, ensure_ascii=False)
+
+def gerar_detalhes_tabela(tabela, acao):
+    detalhes = {
+        'acao': acao,
+        'tabela_info': {
+            'id': tabela.id,
+            'nome': tabela.nome,
+            'descricao': tabela.descricao,
+            'data_criacao': str(tabela.data_criacao)
+        }
+    }
+    return json.dumps(detalhes, ensure_ascii=False)
 
 @login_required(login_url='login')
 def home(request):
@@ -56,6 +99,15 @@ def adicionarTabela(request):
             )
             nova_tabela.save()
             
+            # Registrar auditoria
+            detalhes = gerar_detalhes_tabela(nova_tabela, 'CRIAR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='CRIAR',
+                tabela=nova_tabela,
+                detalhes=detalhes
+            )
+            
             messages.success(request, f'Tabela "{nome_tabela}" criada com sucesso!')
             return redirect('visualizarTabelas') # Redireciona para a página inicial ou de visualização de tabelas
 
@@ -69,7 +121,18 @@ def editarProcesso(request, processo_id):
     if request.method == 'POST':
         form = ProcessoForm(request.POST, instance=processo)
         if form.is_valid():
-            form.save()
+            processo_atualizado = form.save()
+            
+            # Registrar auditoria
+            detalhes = gerar_detalhes_processo(processo_atualizado, 'ATUALIZAR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='ATUALIZAR',
+                processo=processo_atualizado,
+                tabela=processo_atualizado.tabela,
+                detalhes=detalhes
+            )
+            
             messages.success(request, f'Processo "{processo.numero_processo}" atualizado com sucesso!')
             if processo.tabela:
                 return redirect('tabela_processos', tabela_id=processo.tabela.id)
@@ -94,6 +157,15 @@ def deletaProcesso(request, processo_id):
     if request.method == 'POST':
         try:
             numero_processo = processo.numero_processo
+            detalhes = gerar_detalhes_processo(processo, 'EXCLUIR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='EXCLUIR',
+                processo=None,  # Será None pois o processo será deletado
+                tabela=processo.tabela,
+                detalhes=detalhes
+            )
+            
             processo.delete()
             messages.success(request, f'Processo {numero_processo} deletado com sucesso!')
         except Exception as e:
@@ -116,6 +188,17 @@ def adicionarProcesso(request, tabela_id=None):
             if tabela:
                 processo.tabela = tabela
             processo.save()
+            
+            # Registrar auditoria
+            detalhes = gerar_detalhes_processo(processo, 'CRIAR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='CRIAR',
+                processo=processo,
+                tabela=processo.tabela,
+                detalhes=detalhes
+            )
+            
             messages.success(request, f'Processo "{processo.numero_processo}" adicionado com sucesso!')
             if tabela:
                 return redirect('tabela_processos', tabela_id=tabela.id)
@@ -191,15 +274,10 @@ def tabela(request, tabela_id):
 
 @login_required(login_url='login')
 def usuarios(request):
-    # Buscar informações do usuário propeg no sistema
     try:
-        # Verificar se o usuário propeg existe no sistema Django Auth
         propeg_user = User.objects.get(username='propeg')
-        
-        # Buscar informações reais do banco de dados
         nome_completo = propeg_user.get_full_name()
         if not nome_completo or nome_completo.strip() == '':
-            # Se não tiver nome completo, usar first_name ou username como fallback
             nome_completo = propeg_user.first_name or propeg_user.username.upper()
             
         email_usuario = propeg_user.email or 'propeg@ufac.br'
@@ -213,7 +291,6 @@ def usuarios(request):
             'is_active': propeg_user.is_active
         }
     except User.DoesNotExist:
-        # Se não existir, usar informações padrão
         usuario_info = {
             'nome': 'PROPEG',
             'email': 'propeg@ufac.br',
@@ -225,7 +302,7 @@ def usuarios(request):
     
     context = {
         'usuario_info': usuario_info,
-        'is_admin': request.user.is_superuser  # Usado para verificar se o usuário atual é admin
+        'is_admin': request.user.is_superuser  
     }
     return render(request, 'usuario.html', context)
 
@@ -234,7 +311,17 @@ def editar_tabela(request, tabela_id):
     if request.method == 'POST':
         form = TabelaForm(request.POST, instance=tabela)
         if form.is_valid():
-            form.save()
+            tabela_atualizada = form.save()
+            
+            # Registrar auditoria
+            detalhes = gerar_detalhes_tabela(tabela_atualizada, 'ATUALIZAR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='ATUALIZAR',
+                tabela=tabela_atualizada,
+                detalhes=detalhes
+            )
+            
             messages.success(request, f'Tabela "{tabela.nome}" atualizada com sucesso!')
             return redirect('visualizarTabelas')
         else:
@@ -253,6 +340,16 @@ def excluir_tabela(request, tabela_id):
     if request.method == 'POST':
         try:
             nome_tabela = tabela.nome
+            
+            # Registrar auditoria antes de deletar
+            detalhes = gerar_detalhes_tabela(tabela, 'EXCLUIR')
+            registrar_auditoria(
+                usuario=request.user,
+                acao='EXCLUIR',
+                tabela=None,  # Será None pois a tabela será deletada
+                detalhes=detalhes
+            )
+            
             tabela.delete()
             messages.success(request, f'Tabela "{nome_tabela}" excluída com sucesso!')
         except Exception as e:
@@ -705,8 +802,6 @@ def importar_processos(request, tabela_id):
                 
                 # Criar o processo com os valores extraídos na ordem correta
                 try:
-                    # Verificar se os valores de Setor e Bolsa correspondem às opções permitidas
-                    # Ajuste para Setor
                     setor_value = None
                     if setor:
                         setor_upper = str(setor).upper()
@@ -765,8 +860,8 @@ def importar_processos(request, tabela_id):
                     erro_msg = f"Nenhum processo importado. {processos_ignorados} processos foram ignorados por duplicação ou erro."
                     if erros_detalhados:
                         erro_msg += " Detalhes dos erros foram registrados para o administrador do sistema."
-                        # Limitamos a 5 erros para não sobrecarregar a mensagem
-                        for i, erro in enumerate(erros_detalhados[:5]):
+                        # Limitamos a 2 erros para não sobrecarregar a mensagem
+                        for i, erro in enumerate(erros_detalhados[:2]):
                             messages.error(request, f"Erro {i+1}: {erro}")
                         if len(erros_detalhados) > 5:
                             messages.error(request, f"... e mais {len(erros_detalhados) - 5} erros.")
@@ -806,7 +901,6 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    messages.success(request, "Logout efetuado com sucesso!")
     return redirect('login')
 
 
@@ -832,3 +926,52 @@ def alterar_senha_propeg(request):
         form = AlterarSenhaPropegForm()
     
     return render(request, 'alterar_senha_propeg.html', {'form': form})
+
+
+@login_required(login_url='login')
+def visualizar_auditoria(request):
+    acao_filtro = request.GET.get('acao')
+    usuario_filtro = request.GET.get('usuario')
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    
+    # Query base
+    auditorias = Auditoria.objects.all().select_related('usuario', 'processo', 'tabela')
+    
+    # Aplicar filtros se fornecidos
+    if acao_filtro:
+        auditorias = auditorias.filter(acao=acao_filtro)
+    
+    if usuario_filtro:
+        auditorias = auditorias.filter(usuario__username__icontains=usuario_filtro)
+    
+    if data_inicio:
+        auditorias = auditorias.filter(data_evento__date__gte=data_inicio)
+    
+    if data_fim:
+        auditorias = auditorias.filter(data_evento__date__lte=data_fim)
+    
+    # Ordenar por data mais recente
+    auditorias = auditorias.order_by('-data_evento')
+    
+    # Paginação (limitando a 50 registros por página)
+    from django.core.paginator import Paginator
+    paginator = Paginator(auditorias, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Opções para os filtros
+    acoes_disponiveis = Auditoria.AcoesAuditoria.choices
+    usuarios_disponiveis = User.objects.filter(acoes_auditadas__isnull=False).distinct()
+    
+    context = {
+        'page_obj': page_obj,
+        'acoes_disponiveis': acoes_disponiveis,
+        'usuarios_disponiveis': usuarios_disponiveis,
+        'acao_filtro': acao_filtro,
+        'usuario_filtro': usuario_filtro,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+    }
+    
+    return render(request, 'auditoria.html', context)

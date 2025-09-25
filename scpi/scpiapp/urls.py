@@ -24,6 +24,7 @@ urlpatterns = [
     path('tabela/<int:tabela_id>/exportar/xlsx/', views.exportar_xlsx, name='exportar_processos_xlsx'),
     path('tabela/<int:tabela_id>/exportar/csv/', views.exportar_processos_csv, name='exportar_processos_csv'),
     path('tabela/<int:tabela_id>/importar/', views.importar_processos, name='importar_processos'),
+    path('auditoria/', views.visualizar_auditoria, name='visualizar_auditoria'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout')
 ]

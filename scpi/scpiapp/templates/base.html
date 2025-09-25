@@ -29,7 +29,7 @@
             <hr>
             <ul class="nav nav-pills flex-column mb-auto">
               <li class="nav-item">
-                <a href="/" class="nav-link active" aria-current="page">
+                <a href="{% url 'visualizarTabelas' %}" class="nav-link {% if request.resolver_match.url_name == 'visualizarTabelas' %}active{% endif %}" {% if request.resolver_match.url_name == 'visualizarTabelas' %}aria-current="page"{% endif %}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
                   <path d="M15 22.75H9C3.57 22.75 1.25 20.43 1.25 15V9C1.25 3.57 3.57 1.25 9 1.25H15C20.43 1.25 22.75 3.57 22.75 9V15C22.75 20.43 20.43 22.75 15 22.75ZM9 2.75C4.39 2.75 2.75 4.39 2.75 9V15C2.75 19.61 4.39 21.25 9 21.25H15C19.61 21.25 21.25 19.61 21.25 15V9C21.25 4.39 19.61 2.75 15 2.75H9Z" fill="#000000"/>
                   <path d="M12.0006 13.0797C11.8706 13.0797 11.7406 13.0497 11.6206 12.9797L6.32061 9.9197C5.96061 9.7097 5.84059 9.2497 6.05059 8.8997C6.26059 8.5397 6.72061 8.4197 7.07061 8.6297L11.9906 11.4797L16.8806 8.6497C17.2406 8.4397 17.7006 8.5697 17.9006 8.9197C18.1006 9.2697 17.9806 9.7397 17.6306 9.9397L12.3706 12.9797C12.2606 13.0397 12.1306 13.0797 12.0006 13.0797Z" fill="#000000"/>
@@ -39,6 +39,16 @@
                   Tabelas
                 </a>
               </li>
+              {% if user.is_superuser %}
+              <li class="nav-item">
+                <a href="{% url 'visualizar_auditoria' %}" class="nav-link {% if request.resolver_match.url_name == 'visualizar_auditoria' %}active{% endif %}" {% if request.resolver_match.url_name == 'visualizar_auditoria' %}aria-current="page"{% endif %}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9C8.45 9 8 9.45 8 10V20C8 20.55 8.45 21 9 21H15C15.55 21 16 20.55 16 20V10C16 9.45 15.55 9 15 9M14 19H10V11H14V19Z" fill="#000000"/>
+                  </svg>
+                  Auditoria
+                </a>
+              </li>
+              {% endif %}
               <!--<li>
                 <a href="#" class="nav-link text-black">
                   <img src="{% static 'img/question.png' %}" alt="Ajuda" class="me-2">
