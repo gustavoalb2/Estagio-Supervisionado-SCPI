@@ -83,7 +83,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'scpi',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': '3301',
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
