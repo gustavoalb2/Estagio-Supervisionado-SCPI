@@ -7,3 +7,5 @@ Instalar MySql
 Instalar Python mysqlclient
 Instalar reportlab
 Instalar openpyxl
+
+pip install -r requirements.txt

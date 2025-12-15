@@ -77,7 +77,7 @@
             <hr>
             <div class="dropdown">
               <a href="#" class="d-flex align-items-center text-black text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="http://www2.ufac.br/ppgespa/menu/coordenacao/downloads/ufac-brasao.png/@@images/image.png" alt="" width="32" height="32" class="rounded-circle me-2">
+                <img src="{% static 'imagens/UFAC.png' %}" alt="" width="32" height="32" class="rounded-circle me-2">
                 <span>Usuario</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
@@ -90,7 +90,7 @@
             </div>
         </div>
 
-        <main class="container-fluid p-4">
+        <main class="container-fluid p-4 d-flex flex-column overflow-hidden">
             {% if messages %}
                 <div class="messages">
                     {% for message in messages %}

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password, check_password
 
 class Usuario(models.Model):
     class TiposUsuario(models.TextChoices):
@@ -12,6 +13,18 @@ class Usuario(models.Model):
     senha_hash = models.CharField(max_length=255, null=True)
     tipo = models.CharField(max_length=10, choices=TiposUsuario.choices, default=TiposUsuario.COMUM, null=True)
     data_criacao = models.DateTimeField(default=timezone.now)
+
+    def set_password(self, raw_password):
+        self.senha_hash = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.senha_hash)
+
+    def save(self, *args, **kwargs):
+        # Verifica se a senha foi definida mas não está hashada (verificação simples)
+        if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
+             self.senha_hash = make_password(self.senha_hash)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nome
