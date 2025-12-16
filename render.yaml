@@ -2,11 +2,13 @@ databases:
   - name: scpi_db
     databaseName: scpi
     user: scpi_user
+    plan: free
 
 services:
   - type: web
     name: scpi
     env: python
+    plan: free
     buildCommand: "./build.sh"
     startCommand: "cd scpi && gunicorn scpi.wsgi:application"
     envVars:
