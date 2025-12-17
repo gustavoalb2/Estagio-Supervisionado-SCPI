@@ -276,35 +276,27 @@ def tabela(request, tabela_id):
 
 @login_required(login_url='login')
 def usuarios(request):
-    try:
-        propeg_user = User.objects.get(username='propeg')
-        nome_completo = propeg_user.get_full_name()
-        if not nome_completo or nome_completo.strip() == '':
-            nome_completo = propeg_user.first_name or propeg_user.username.upper()
-            
-        email_usuario = propeg_user.email or 'propeg@ufac.br'
+    # Pega o usuário logado atualmente
+    current_user = request.user
+    
+    nome_completo = current_user.get_full_name()
+    if not nome_completo or nome_completo.strip() == '':
+        nome_completo = current_user.first_name or current_user.username.upper()
         
-        usuario_info = {
-            'nome': nome_completo,
-            'email': email_usuario,
-            'username': propeg_user.username,
-            'data_criacao': propeg_user.date_joined,
-            'ultimo_login': propeg_user.last_login,
-            'is_active': propeg_user.is_active
-        }
-    except User.DoesNotExist:
-        usuario_info = {
-            'nome': 'PROPEG',
-            'email': 'propeg@ufac.br',
-            'username': 'propeg',
-            'data_criacao': None,
-            'ultimo_login': None,
-            'is_active': False
-        }
+    email_usuario = current_user.email or f'{current_user.username}@ufac.br'
+    
+    usuario_info = {
+        'nome': nome_completo,
+        'email': email_usuario,
+        'username': current_user.username,
+        'data_criacao': current_user.date_joined,
+        'ultimo_login': current_user.last_login,
+        'is_active': current_user.is_active
+    }
     
     context = {
         'usuario_info': usuario_info,
-        'is_admin': request.user.is_superuser  
+        'is_admin': current_user.is_superuser  
     }
     return render(request, 'usuario.html', context)
 
