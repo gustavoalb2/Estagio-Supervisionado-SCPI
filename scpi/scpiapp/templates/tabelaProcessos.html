@@ -61,7 +61,7 @@
                                     <li>Assunto</li>
                                     <li>Observações</li>
                                 </ol>
-                                <p class="text-muted small">A primeira linha deve conter os cabeçalhos. Processos com números duplicados serão ignorados.</p>
+                                <p class="text-muted small">A primeira linha deve conter os cabeçalhos. Processos com números duplicados serão importados mas destacados visualmente na tabela.</p>
                                 <div class="alert alert-info">
                                     <strong>Nota:</strong> A planilha pode conter cabeçalhos com nomes diferentes, desde que estejam na ordem correta. Se houver cabeçalhos, o sistema tentará mapear automaticamente os campos.
                                 </div>
@@ -95,7 +95,20 @@
                         </a>
                     </th>
                     <th>Matrícula</th>
-                    <th>Nº processo</th>
+                    <th>
+                        <a href="?sort=numero_processo&direction={% if sort_by == 'numero_processo' and sort_direction == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-dark">
+                            Nº processo
+                            {% if sort_by == 'numero_processo' %}
+                                {% if sort_direction == 'asc' %}
+                                    <i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-arrow-down-up text-muted"></i>
+                            {% endif %}
+                        </a>
+                    </th>
                     <th>
                         <a href="?sort=data_abertura&direction={% if sort_by == 'data_abertura' and sort_direction == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-dark">
                             Data de abertura
@@ -133,7 +146,7 @@
             </thead>
             <tbody>
                 {% for processo in processos %}
-                <tr>
+                <tr class="{% if processo.numero_processo in numeros_duplicados %}table-danger{% endif %}" {% if processo.numero_processo in numeros_duplicados %}title="Existem processos com números duplicados"{% endif %}>
                     <td><strong>{{ processo.nome }}</strong></td>
                     <td class="text-muted">{{ processo.matricula }}</td>
                     <td class="text-muted col-numero-processo">{{ processo.numero_processo }}</td>
@@ -203,14 +216,12 @@
                         </div>
                         <div class="card-body">
                             <h5 class="card-title">{{ processo.nome }}</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">{{ processo.get_status_display }}</h6>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-md">
                                     <p><strong>Matrícula:</strong> {{ processo.matricula|default:"Não informada" }}</p>
                                     <p><strong>Data de Abertura:</strong> {{ processo.data_abertura|date:"d/m/Y"|default:"Não informada" }}</p>
                                     <p><strong>Setor:</strong> {{ processo.get_setor_display|default:"Não informado" }}</p>
-                                </div>
-                                <div class="col-md-6">
+                                
                                     <p><strong>Bolsa:</strong> {{ processo.get_bolsa_display|default:"Não informada" }}</p>
                                     <p><strong>Data de Retorno:</strong> {{ processo.data_retorno|date:"d/m/Y"|default:"Não informada" }}</p>
                                     <p><strong>Status:</strong> {{ processo.get_status_display|default:"Não informado" }}</p>

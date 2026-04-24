@@ -218,11 +218,12 @@ def adicionarProcesso(request, tabela_id=None):
     return render(request, 'processo_form.html', context)
 
 def tabela(request, tabela_id):
+    from django.db.models import Count
     tabela = get_object_or_404(TabelaProcessos, id=tabela_id)
     query = request.GET.get('q')
     
     # Parâmetros de ordenação
-    sort_by = request.GET.get('sort', 'nome')  # Ordenação padrão por nome
+    sort_by = request.GET.get('sort', 'numero_processo')  # Ordenação padrão por numero
     sort_direction = request.GET.get('direction', 'asc')  # Direção padrão ascendente
     
     if query:
@@ -241,6 +242,11 @@ def tabela(request, tabela_id):
             processos = processos.order_by('-nome')
         else:
             processos = processos.order_by('nome')
+    elif sort_by == 'numero_processo':
+        if sort_direction == 'desc':
+            processos = processos.order_by('-numero_processo', 'nome')
+        else:
+            processos = processos.order_by('numero_processo', 'nome')
     elif sort_by == 'data_abertura':
         if sort_direction == 'desc':
             processos = processos.order_by('-data_abertura')
@@ -251,6 +257,14 @@ def tabela(request, tabela_id):
             processos = processos.order_by('-data_retorno')
         else:
             processos = processos.order_by('data_retorno')
+    
+    # Identificar processos duplicados pelo numero_processo para destacar na view
+    duplicados_qs = Processo.objects.filter(
+        tabela=tabela, 
+        numero_processo__isnull=False
+    ).exclude(numero_processo="").values('numero_processo').annotate(count=Count('id')).filter(count__gt=1)
+    
+    numeros_duplicados = [item['numero_processo'] for item in duplicados_qs]
     
     # Contagem de processos por setor
     count_cic = processos.filter(setor='CIC').count()
@@ -263,6 +277,7 @@ def tabela(request, tabela_id):
 
     context = {
         'processos': processos,
+        'numeros_duplicados': numeros_duplicados,
         'tabela': tabela,
         'count_cic': count_cic,
         'count_dpq': count_dpq,
@@ -788,11 +803,8 @@ def importar_processos(request, tabela_id):
                 assunto = row[assunto_idx] if len(row) > assunto_idx and row[assunto_idx] else None
                 observacoes = row[observacoes_idx] if len(row) > observacoes_idx and row[observacoes_idx] else None
                 
-                # Verificar se já existe um processo com o mesmo número
-                if numero_processo and Processo.objects.filter(numero_processo=numero_processo).exists():
-                    processos_ignorados += 1
-                    erros_detalhados.append(f"Linha {row_num}: Processo com número '{numero_processo}' já existe no sistema.")
-                    continue
+                # O sistema agora permite importar arquivos com o mesmo número (não pula mais).
+                # Verificar validações futuras se necessário.
                 
                 # Criar o processo com os valores extraídos na ordem correta
                 try:
@@ -932,18 +944,22 @@ def visualizar_auditoria(request):
     # Query base
     auditorias = Auditoria.objects.all().select_related('usuario', 'processo', 'tabela')
     
+    from django.db.models import Q
     # Aplicar filtros se fornecidos
     if acao_filtro:
         auditorias = auditorias.filter(acao=acao_filtro)
     
     if usuario_filtro:
-        auditorias = auditorias.filter(usuario__username__icontains=usuario_filtro)
+        auditorias = auditorias.filter(
+            Q(usuario__username__icontains=usuario_filtro) | 
+            Q(usuario__first_name__icontains=usuario_filtro)
+        )
     
     if data_inicio:
-        auditorias = auditorias.filter(data_evento__date__gte=data_inicio)
+        auditorias = auditorias.filter(data_evento__gte=f"{data_inicio} 00:00:00")
     
     if data_fim:
-        auditorias = auditorias.filter(data_evento__date__lte=data_fim)
+        auditorias = auditorias.filter(data_evento__lte=f"{data_fim} 23:59:59")
     
     # Ordenar por data mais recente
     auditorias = auditorias.order_by('-data_evento')

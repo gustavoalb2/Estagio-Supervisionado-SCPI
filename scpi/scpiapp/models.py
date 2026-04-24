@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password, check_password
+import json
 
 class Usuario(models.Model):
     class TiposUsuario(models.TextChoices):
@@ -53,7 +54,7 @@ class Processo(models.Model):
 
     nome = models.CharField(max_length=255)
     matricula = models.CharField(max_length=50, blank=True, null=True)
-    numero_processo = models.CharField(max_length=50, unique=True, null=True)
+    numero_processo = models.CharField(max_length=50, null=True, blank=True)
     data_abertura = models.DateField(null=True, blank=True)
     data_retorno = models.DateField(null=True, blank=True)
     setor = models.CharField(max_length=100, choices=SetorOpcoes.choices, null=True, blank=True)
@@ -79,3 +80,47 @@ class Auditoria(models.Model):
     acao = models.CharField(max_length=15, choices=AcoesAuditoria.choices, null=True)
     detalhes = models.TextField(null=True)
     data_evento = models.DateTimeField(default=timezone.now)
+
+    @property
+    def numero_processo_exibicao(self):
+        if self.processo and self.processo.numero_processo:
+            return self.processo.numero_processo
+        
+        if self.detalhes:
+            try:
+                dados = json.loads(self.detalhes)
+                if 'processo_info' in dados and 'numero_processo' in dados['processo_info']:
+                    return dados['processo_info']['numero_processo']
+            except:
+                pass
+        return None
+        
+    @property
+    def nome_processo_exibicao(self):
+        if self.processo and self.processo.nome:
+            return self.processo.nome
+        
+        if self.detalhes:
+            try:
+                dados = json.loads(self.detalhes)
+                if 'processo_info' in dados and 'nome' in dados['processo_info']:
+                    return dados['processo_info']['nome']
+            except:
+                pass
+        return None
+
+    @property
+    def nome_tabela_exibicao(self):
+        if self.tabela and self.tabela.nome:
+            return self.tabela.nome
+        
+        if self.detalhes:
+            try:
+                dados = json.loads(self.detalhes)
+                if 'tabela_info' in dados and 'nome' in dados['tabela_info']:
+                    return dados['tabela_info']['nome']
+                elif 'processo_info' in dados and 'tabela_nome' in dados['processo_info']:
+                    return dados['processo_info']['tabela_nome']
+            except:
+                pass
+        return None
